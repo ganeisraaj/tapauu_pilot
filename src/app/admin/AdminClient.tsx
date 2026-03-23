@@ -61,25 +61,59 @@ export default function AdminDashboard({
 
     if (!isAuthorized) {
         return (
-            <div className="container max-w-md mx-auto p-4 py-20">
-                <Card className="border-2 border-slate-900 shadow-xl">
-                    <CardHeader>
-                        <CardTitle>Admin Access</CardTitle>
-                        <CardDescription>Please enter the secret passcode to access the pilot controls.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            <Input
-                                type="password"
-                                placeholder="Admin Passcode"
-                                value={passcode}
-                                onChange={e => setPasscode(e.target.value)}
-                                className="text-center font-mono text-xl"
-                            />
-                            <Button type="submit" className="w-full h-12 font-bold">Unlock Dashboard</Button>
-                        </form>
-                    </CardContent>
-                </Card>
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,59,48,0.1),transparent_50%)]" />
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-md relative z-10"
+                >
+                    <div className="text-center mb-8">
+                        <div className="inline-flex p-4 bg-primary/10 rounded-2xl mb-4 border border-primary/20 backdrop-blur-xl">
+                            <Utensils className="h-8 w-8 text-primary" />
+                        </div>
+                        <h1 className="text-3xl font-black text-white tracking-tight">TAPAUU ADMIN</h1>
+                        <p className="text-slate-400 font-medium">Restricted Access • Pilot Phase</p>
+                    </div>
+
+                    <Card className="border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+                        <CardHeader className="text-center pb-2">
+                            <CardTitle className="text-white">Passcode Required</CardTitle>
+                            <CardDescription className="text-slate-400">Enter the secret key to unlock the command center.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleAuth} className="space-y-6">
+                                <div className="space-y-2">
+                                    <Input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={passcode}
+                                        onChange={e => setPasscode(e.target.value)}
+                                        className="bg-white/5 border-white/10 text-white text-center font-mono text-2xl h-16 focus:ring-primary focus:border-primary placeholder:text-white/10"
+                                        autoFocus
+                                    />
+                                </div>
+                                <Button
+                                    type="submit"
+                                    className="w-full h-14 font-black text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                                >
+                                    Unlock Dashboard
+                                </Button>
+                                <p className="text-center text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                                    Encrypted Connection • Authorized Personnel Only
+                                </p>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="w-full mt-6 text-slate-500 hover:text-white text-sm font-bold transition-colors"
+                    >
+                        ← Return to Volunteer Site
+                    </button>
+                </motion.div>
             </div>
         )
     }
