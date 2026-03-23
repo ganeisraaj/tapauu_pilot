@@ -6,7 +6,7 @@ import { reserveMealAction, checkUserAction } from './actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
 import { Utensils, Clock, CheckCircle, History, User as UserIcon, LogOut, ArrowRight, Wallet } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { cn, getMYTDateString } from '@/lib/utils'
 
 export default function Home({
     initialMeals,
@@ -37,8 +37,8 @@ export default function Home({
 
     useEffect(() => {
         if (user) {
-            const today = new Date().toISOString().split('T')[0]
-            const tomorrow = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            const today = getMYTDateString()
+            const tomorrow = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
 
             setTodayReservation(allReservations.find(r => r.user_id === user.id && r.date === today) || null)
             setTomorrowReservation(allReservations.find(r => r.user_id === user.id && r.date === tomorrow) || null)
@@ -229,19 +229,32 @@ export default function Home({
                                 <div className="grid gap-4">
                                     {initialMeals
                                         .filter(m => {
-                                            const today = new Date().toISOString().split('T')[0]
-                                            const tomorrow = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                                            return selectedDay === 'today' ? m.date === today : m.date === tomorrow
+                                            const todayMYT = getMYTDateString()
+                                            const tomorrowMYT = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
+                                            return selectedDay === 'today' ? m.date === todayMYT : m.date === tomorrowMYT
                                         })
                                         .map((meal) => {
                                             const vendor = initialVendors.find(v => v.id === meal.vendor_id)
                                             const isSoldOut = meal.remaining <= 0
 
-                                            // Only check cutoff for TODAY
+                                            // Improved Cutoff Logic with MYT Timezone Sync
+                                            const todayMYT = getMYTDateString()
+
+                                            // Handle Time Calculation
+                                            // Helper to get minutes since midnight for comparison
+                                            const getMinutes = (h: number, min: number) => h * 60 + min
+
                                             const now = mounted ? new Date() : new Date(0)
-                                            const cutoffTime = new Date(new Date().setHours(Number(meal.cutoff.split(':')[0]), Number(meal.cutoff.split(':')[1]), 0, 0))
-                                            const isToday = meal.date === new Date().toISOString().split('T')[0]
-                                            const isCutoff = isToday && now > cutoffTime
+                                            // Current Malaysia Time (MYT) in minutes
+                                            const nowMYT = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }))
+                                            const currentMinutes = getMinutes(nowMYT.getHours(), nowMYT.getMinutes())
+
+                                            // Cutoff time in minutes
+                                            const [cutoffH, cutoffM] = meal.cutoff.split(':').map(Number)
+                                            const cutoffMinutes = getMinutes(cutoffH, cutoffM)
+
+                                            const isToday = meal.date === todayMYT
+                                            const isCutoff = isToday && currentMinutes > cutoffMinutes
 
                                             return (
                                                 <motion.div key={meal.id} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
