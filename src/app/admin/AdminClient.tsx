@@ -40,11 +40,7 @@ export default function AdminDashboard({
         const today = new Date().toISOString().split('T')[0]
         setSelectedDate(today)
         setMounted(true)
-
-        // Check for existing authorization
-        if (localStorage.getItem('tapauu_admin_auth') === 'true') {
-            setIsAuthorized(true)
-        }
+        // Always require passcode — no persistent session
     }, [])
 
     const ADMIN_PASSCODE = "tapauu-pilot" // Simple passcode for pilot
@@ -53,7 +49,6 @@ export default function AdminDashboard({
         e.preventDefault()
         if (passcode === ADMIN_PASSCODE) {
             setIsAuthorized(true)
-            localStorage.setItem('tapauu_admin_auth', 'true')
         } else {
             alert("Invalid Admin Passcode")
         }
