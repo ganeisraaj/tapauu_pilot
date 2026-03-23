@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Input, Badge } from '@/components/ui-base'
 import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction, createUserAction, createVendorAction, deleteVendorAction, deleteUserAction, updateVendorAction } from '../actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
@@ -19,6 +20,7 @@ export default function AdminDashboard({
     meals: DailyMeal[],
     reservations: Reservation[]
 }) {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'meals' | 'reservations'>('stats')
     const [searchTerm, setSearchTerm] = useState('')
     const [loading, setLoading] = useState(false)
@@ -93,6 +95,7 @@ export default function AdminDashboard({
     const handleUpdateStatus = async (userId: string, active: boolean) => {
         setLoading(true)
         await updateUserAction(userId, { active })
+        router.refresh()
         setLoading(false)
     }
 
@@ -101,6 +104,7 @@ export default function AdminDashboard({
         if (!user) return
         setLoading(true)
         await updateUserAction(userId, { credits: user.credits + delta })
+        router.refresh()
         setLoading(false)
     }
 
@@ -109,7 +113,7 @@ export default function AdminDashboard({
         const res = await updateMealAction(mealId, editForm)
         if (res.success) {
             setEditingMeal(null)
-            window.location.reload()
+            router.refresh()
         } else {
             alert(res.error)
         }
@@ -128,7 +132,7 @@ export default function AdminDashboard({
         })
         if (res.success) {
             setAddingToVendor(null)
-            window.location.reload()
+            router.refresh()
         } else {
             alert(res.error)
         }
@@ -140,7 +144,7 @@ export default function AdminDashboard({
         setLoading(true)
         const res = await deleteMealAction(mealId)
         if (res.success) {
-            window.location.reload()
+            router.refresh()
         } else {
             alert((res as any).error || "Failed to delete")
         }
@@ -163,7 +167,8 @@ export default function AdminDashboard({
         const res = await createUserAction(newVolunteer)
         if (res.success) {
             setIsAddingVolunteer(false)
-            window.location.reload()
+            setNewVolunteer({ name: '', tapauu_id: '', phone: '', credits: 10 })
+            router.refresh()
         } else {
             alert((res as any).error)
         }
@@ -176,7 +181,8 @@ export default function AdminDashboard({
         const res = await createVendorAction(newVendor)
         if (res.success) {
             setIsAddingVendor(false)
-            window.location.reload()
+            setNewVendor({ name: '', code: '' })
+            router.refresh()
         } else {
             alert((res as any).error)
         }
@@ -187,7 +193,7 @@ export default function AdminDashboard({
         if (!confirm('Are you sure? This volunteer will be permanently removed.')) return
         setLoading(true)
         const res = await deleteUserAction(userId)
-        if (res.success) window.location.reload()
+        if (res.success) router.refresh()
         setLoading(false)
     }
 
@@ -195,7 +201,7 @@ export default function AdminDashboard({
         if (!confirm('Are you sure? This vendor and their code will be removed.')) return
         setLoading(true)
         const res = await deleteVendorAction(vendorId)
-        if (res.success) window.location.reload()
+        if (res.success) router.refresh()
         else alert((res as any).error)
         setLoading(false)
     }
