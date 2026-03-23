@@ -241,7 +241,6 @@ export default function Home({
                                             const todayMYT = getMYTDateString()
 
                                             // Handle Time Calculation
-                                            // Helper to get minutes since midnight for comparison
                                             const getMinutes = (h: number, min: number) => h * 60 + min
 
                                             const now = mounted ? new Date() : new Date(0)
@@ -256,11 +255,15 @@ export default function Home({
                                             const isToday = meal.date === todayMYT
                                             const isCutoff = isToday && currentMinutes > cutoffMinutes
 
+                                            // Only show 'Closed' for Today. Tomorrow is always open for pre-booking.
+                                            const displayStatus = isSoldOut ? 'Sold Out' : (isToday && isCutoff) ? 'Closed' : selectedDay === 'tomorrow' ? 'Pre-book Now 🗓️' : 'Reserve'
+                                            const isDisabled = isSoldOut || (isToday && isCutoff) || loading
+
                                             return (
                                                 <motion.div key={meal.id} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
                                                     <Card className={cn(
                                                         "group relative overflow-hidden transition-all",
-                                                        isSoldOut || (isToday && isCutoff) ? "grayscale opacity-60" : "hover:border-primary/50 cursor-pointer shadow-md hover:shadow-xl"
+                                                        isDisabled ? "grayscale opacity-60" : "hover:border-primary/50 cursor-pointer shadow-md hover:shadow-xl"
                                                     )}>
                                                         <CardHeader className="p-5 pb-2">
                                                             <div className="flex justify-between items-start">
@@ -281,7 +284,7 @@ export default function Home({
                                                                 <span className="text-xs font-bold text-slate-600">{meal.remaining}/{meal.limit} slots left</span>
                                                             </div>
                                                             <Button
-                                                                disabled={isSoldOut || (isToday && isCutoff) || loading}
+                                                                disabled={isDisabled}
                                                                 onClick={() => handleReserve(meal.id)}
                                                                 size="sm"
                                                                 className={cn(
@@ -289,7 +292,7 @@ export default function Home({
                                                                     selectedDay === 'tomorrow' ? "bg-blue-600 hover:bg-blue-700" : ""
                                                                 )}
                                                             >
-                                                                {isSoldOut ? 'Sold Out' : (isToday && isCutoff) ? 'Closed' : selectedDay === 'tomorrow' ? 'Pre-book Now 🗓️' : 'Reserve'}
+                                                                {displayStatus}
                                                             </Button>
                                                         </CardFooter>
                                                     </Card>
@@ -333,7 +336,8 @@ export default function Home({
                         </div>
                     </section>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }
