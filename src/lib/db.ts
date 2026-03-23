@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabaseAdmin as supabase } from './supabase-admin'
 
 export type User = {
     id: string;
@@ -154,6 +154,46 @@ export async function redeemVoucher(voucherCode: string) {
 }
 
 // Admin only functions
+export async function createUser(user: Partial<User>) {
+    const id = `u-${Date.now()}`;
+    const { error } = await supabase.from('users').insert({
+        ...user,
+        id,
+        active: true
+    });
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function createVendor(vendor: Partial<Vendor>) {
+    const id = `v-${Date.now()}`;
+    const { error } = await supabase.from('vendors').insert({
+        ...vendor,
+        id,
+        active: true
+    });
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function updateVendor(vendorId: string, updates: Partial<Vendor>) {
+    const { error } = await supabase.from('vendors').update(updates).eq('id', vendorId);
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function deleteVendor(vendorId: string) {
+    const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
+    if (error) throw error;
+    return { success: true };
+}
+
+export async function deleteUser(userId: string) {
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+    if (error) throw error;
+    return { success: true };
+}
+
 export async function updateUser(userId: string, updates: Partial<User>) {
     const { error } = await supabase.from('users').update(updates).eq('id', userId);
     if (error) throw error;
@@ -161,13 +201,15 @@ export async function updateUser(userId: string, updates: Partial<User>) {
 }
 
 export async function updateMeal(mealId: string, updates: any) {
+    const data: any = {
+        meal_name: updates.meal_name,
+        cutoff: updates.cutoff,
+        slots_limit: updates.limit
+    };
+    if (updates.remaining !== undefined) data.remaining = updates.remaining;
+
     const { error } = await supabase.from('daily_meals')
-        .update({
-            meal_name: updates.meal_name,
-            cutoff: updates.cutoff,
-            slots_limit: updates.limit,
-            remaining: updates.remaining !== undefined ? updates.remaining : undefined
-        })
+        .update(data)
         .eq('id', mealId);
     if (error) throw error;
     return { success: true };
@@ -175,8 +217,13 @@ export async function updateMeal(mealId: string, updates: any) {
 
 export async function createMeal(meal: any) {
     const { error } = await supabase.from('daily_meals').insert({
-        ...meal,
-        slots_limit: meal.limit
+        id: meal.id,
+        date: meal.date,
+        vendor_id: meal.vendor_id,
+        meal_name: meal.meal_name,
+        slots_limit: meal.limit,
+        remaining: meal.remaining,
+        cutoff: meal.cutoff
     });
     if (error) throw error;
     return { success: true };

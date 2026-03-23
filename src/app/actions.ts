@@ -9,7 +9,13 @@ import {
     updateMeal,
     createMeal,
     deleteMeal,
+    createUser,
+    createVendor,
+    updateVendor,
+    deleteVendor,
+    deleteUser,
     type User,
+    type Vendor,
     type DailyMeal
 } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
@@ -91,6 +97,56 @@ export async function redeemAction(voucherCode: string) {
         revalidatePath('/admin')
         revalidatePath('/')
         return { success: true, reservation: res }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function createUserAction(user: Partial<User>) {
+    try {
+        await createUser(user)
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function createVendorAction(vendor: Partial<Vendor>) {
+    try {
+        await createVendor(vendor)
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function updateVendorAction(vendorId: string, updates: Partial<Vendor>) {
+    try {
+        await updateVendor(vendorId, updates)
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function deleteVendorAction(vendorId: string) {
+    try {
+        await deleteVendor(vendorId)
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function deleteUserAction(userId: string) {
+    try {
+        await deleteUser(userId)
+        revalidatePath('/admin')
+        return { success: true }
     } catch (error: any) {
         return { error: error.message }
     }

@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Input, Badge } from '@/components/ui-base'
-import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction } from '../actions'
+import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction, createUserAction, createVendorAction, deleteVendorAction, deleteUserAction, updateVendorAction } from '../actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
-import { Users, LayoutDashboard, Settings, ListChecks, Search, Save, Check, X, TrendingUp, AlertCircle, Trash2, Utensils, LogOut } from 'lucide-react'
+import { Users, LayoutDashboard, Settings, ListChecks, Search, Save, Check, X, TrendingUp, AlertCircle, Trash2, Utensils, LogOut, UserPlus, Store, Edit3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +27,10 @@ export default function AdminDashboard({
     const [mounted, setMounted] = useState(false)
     const [editingMeal, setEditingMeal] = useState<string | null>(null)
     const [addingToVendor, setAddingToVendor] = useState<string | null>(null)
+    const [isAddingVolunteer, setIsAddingVolunteer] = useState(false)
+    const [isAddingVendor, setIsAddingVendor] = useState(false)
+    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: 10 })
+    const [newVendor, setNewVendor] = useState({ name: '', code: '' })
     const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: 20 })
     const [selectedDate, setSelectedDate] = useState<string>('')
 
@@ -153,6 +157,49 @@ export default function AdminDashboard({
         setEditForm({ meal_name: '', cutoff: '11:05', limit: 20 })
     }
 
+    const handleCreateVolunteer = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        const res = await createUserAction(newVolunteer)
+        if (res.success) {
+            setIsAddingVolunteer(false)
+            window.location.reload()
+        } else {
+            alert((res as any).error)
+        }
+        setLoading(false)
+    }
+
+    const handleCreateVendor = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        const res = await createVendorAction(newVendor)
+        if (res.success) {
+            setIsAddingVendor(false)
+            window.location.reload()
+        } else {
+            alert((res as any).error)
+        }
+        setLoading(false)
+    }
+
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm('Are you sure? This volunteer will be permanently removed.')) return
+        setLoading(true)
+        const res = await deleteUserAction(userId)
+        if (res.success) window.location.reload()
+        setLoading(false)
+    }
+
+    const handleDeleteVendor = async (vendorId: string) => {
+        if (!confirm('Are you sure? This vendor and their code will be removed.')) return
+        setLoading(true)
+        const res = await deleteVendorAction(vendorId)
+        if (res.success) window.location.reload()
+        else alert((res as any).error)
+        setLoading(false)
+    }
+
     const handleRedeem = async (voucher: string) => {
         setLoading(true)
         const res = await redeemAction(voucher)
@@ -208,34 +255,90 @@ export default function AdminDashboard({
                             <StatCard title="No-Shows" value={stats.noShows} sub="Reserved but not used" icon={AlertCircle} color="red" />
                         </div>
 
-                        <Card className="border-2 border-primary/20">
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                    <ListChecks className="h-5 w-5 text-primary" /> Vendor Pilot Links
-                                </CardTitle>
-                                <CardDescription>Share these secret links with each individual food vendor for their portal access.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid md:grid-cols-3 gap-4">
-                                {vendors.map(v => (
-                                    <div key={v.id} className="p-4 bg-slate-50 rounded-xl border space-y-2">
-                                        <p className="font-black text-slate-900 leading-none">{v.name}</p>
-                                        <p className="text-[10px] uppercase font-black text-slate-400">Code: {v.code}</p>
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <Input readOnly value={`${window.location.origin}/vendor/${v.code}`} className="h-8 text-[10px] font-mono" />
-                                            <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold" onClick={() => {
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <Card className="border-2 border-primary/20 bg-primary/5">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <div className="p-2 bg-primary rounded-lg text-white">
+                                            <UserPlus className="h-4 w-4" />
+                                        </div>
+                                        Quick Actions
+                                    </CardTitle>
+                                    <CardDescription>Main management controls for the pilot.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-2 gap-4">
+                                    <Button onClick={() => { setActiveTab('users'); setIsAddingVolunteer(true); }} className="h-16 flex flex-col gap-1 font-black shadow-lg shadow-primary/20">
+                                        <UserPlus className="h-5 w-5" />
+                                        Add Volunteer
+                                    </Button>
+                                    <Button variant="outline" onClick={() => setIsAddingVendor(true)} className="h-16 flex flex-col gap-1 font-black border-2 border-slate-900">
+                                        <Store className="h-5 w-5" />
+                                        Add Vendor
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-2 border-primary/20">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <ListChecks className="h-5 w-5 text-primary" /> Vendor Pilot Links
+                                    </CardTitle>
+                                    <CardDescription>Share these secret links with each individual food vendor.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-2 gap-4">
+                                    {vendors.map(v => (
+                                        <div key={v.id} className="p-3 bg-white rounded-xl border flex flex-col justify-between">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-black text-slate-900 leading-none text-xs">{v.name}</p>
+                                                    <p className="text-[10px] font-black text-primary mt-1">Code: {v.code}</p>
+                                                </div>
+                                                <Button size="icon" variant="ghost" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => handleDeleteVendor(v.id)}>
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            <Button size="sm" variant="outline" className="w-full h-7 text-[10px] font-bold" onClick={() => {
                                                 navigator.clipboard.writeText(`${window.location.origin}/vendor/${v.code}`)
                                                 alert(`${v.name} link copied!`)
-                                            }}>Copy</Button>
+                                            }}>Copy Link</Button>
                                         </div>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        </div>
                     </motion.div>
                 )}
 
                 {activeTab === 'users' && (
-                    <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                    <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        {isAddingVolunteer && (
+                            <Card className="border-2 border-primary ring-4 ring-primary/10">
+                                <CardHeader>
+                                    <CardTitle>Register New Volunteer</CardTitle>
+                                    <CardDescription>Add a new student to the pilot program.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleCreateVolunteer} className="grid md:grid-cols-4 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">TAPAUU ID</label>
+                                            <Input placeholder="STU999" value={newVolunteer.tapauu_id} onChange={e => setNewVolunteer({ ...newVolunteer, tapauu_id: e.target.value.toUpperCase() })} required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">Full Name</label>
+                                            <Input placeholder="John Doe" value={newVolunteer.name} onChange={e => setNewVolunteer({ ...newVolunteer, name: e.target.value })} required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">Phone</label>
+                                            <Input placeholder="012-3456789" value={newVolunteer.phone} onChange={e => setNewVolunteer({ ...newVolunteer, phone: e.target.value })} />
+                                        </div>
+                                        <div className="flex items-end gap-2">
+                                            <Button type="submit" className="flex-1 font-black" disabled={loading}>Save Volunteer</Button>
+                                            <Button type="button" variant="ghost" onClick={() => setIsAddingVolunteer(false)}>Cancel</Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        )}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                 <CardTitle className="text-lg">Volunteer Management</CardTitle>
@@ -515,6 +618,39 @@ export default function AdminDashboard({
                             </CardContent>
                         </Card>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Vendor Modal (Overlay) */}
+            <AnimatePresence>
+                {isAddingVendor && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
+                            <Card className="w-full max-w-md shadow-2xl border-2 border-slate-900">
+                                <CardHeader>
+                                    <CardTitle>Add New Food Vendor</CardTitle>
+                                    <CardDescription>Onboard a new vendor to the TAUPAUU network.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleCreateVendor} className="space-y-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">Vendor Business Name</label>
+                                            <Input placeholder="e.g. Spice Garden" value={newVendor.name} onChange={e => setNewVendor({ ...newVendor, name: e.target.value })} required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">Vendor Code (1 Letter)</label>
+                                            <Input placeholder="D" maxLength={1} value={newVendor.code} onChange={e => setNewVendor({ ...newVendor, code: e.target.value.toUpperCase() })} required />
+                                            <p className="text-[10px] text-slate-400">This code is used for voucher generation (e.g., D-2403-01)</p>
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                            <Button type="submit" className="flex-1 font-black" disabled={loading}>Register Vendor</Button>
+                                            <Button type="button" variant="ghost" onClick={() => setIsAddingVendor(false)}>Cancel</Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
