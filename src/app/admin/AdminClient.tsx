@@ -31,11 +31,11 @@ export default function AdminDashboard({
     const [addingToVendor, setAddingToVendor] = useState<string | null>(null)
     const [isAddingVolunteer, setIsAddingVolunteer] = useState(false)
     const [isAddingVendor, setIsAddingVendor] = useState(false)
-    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: 10 })
+    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: '10' })
     const [newVendor, setNewVendor] = useState({ name: '', code: '' })
-    const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: 20, credit_cost: 1 })
+    const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: '20', credit_cost: '1' })
     const [selectedDate, setSelectedDate] = useState<string>('')
-    const [editingCredits, setEditingCredits] = useState<{ [userId: string]: number }>({})
+    const [editingCredits, setEditingCredits] = useState<{ [userId: string]: string }>({})
 
     React.useEffect(() => {
         const today = new Date().toISOString().split('T')[0]
@@ -140,7 +140,11 @@ export default function AdminDashboard({
 
     const handleUpdateMeal = async (mealId: string) => {
         setLoading(true)
-        const res = await updateMealAction(mealId, editForm)
+        const res = await updateMealAction(mealId, {
+            ...editForm,
+            limit: parseInt(String(editForm.limit)) || 20,
+            credit_cost: parseFloat(String(editForm.credit_cost)) || 1
+        })
         if (res.success) {
             setEditingMeal(null)
             router.refresh()
@@ -156,10 +160,10 @@ export default function AdminDashboard({
             date: selectedDate,
             vendor_id: vendorId,
             meal_name: editForm.meal_name || "New Meal",
-            limit: Number(editForm.limit) || 20,
+            limit: parseInt(String(editForm.limit)) || 20,
             cutoff: editForm.cutoff || "11:05",
-            remaining: Number(editForm.limit) || 20,
-            credit_cost: Number(editForm.credit_cost) || 1
+            remaining: parseInt(String(editForm.limit)) || 20,
+            credit_cost: parseFloat(String(editForm.credit_cost)) || 1
         })
         if (res.success) {
             setAddingToVendor(null)
@@ -184,21 +188,24 @@ export default function AdminDashboard({
 
     const startEditing = (meal: DailyMeal) => {
         setEditingMeal(meal.id)
-        setEditForm({ meal_name: meal.meal_name, cutoff: meal.cutoff, limit: meal.limit, credit_cost: meal.credit_cost ?? 1 })
+        setEditForm({ meal_name: meal.meal_name, cutoff: meal.cutoff, limit: String(meal.limit), credit_cost: String(meal.credit_cost ?? 1) })
     }
 
     const startAdding = (vendorId: string) => {
         setAddingToVendor(vendorId)
-        setEditForm({ meal_name: '', cutoff: '11:05', limit: 20, credit_cost: 1 })
+        setEditForm({ meal_name: '', cutoff: '11:05', limit: '20', credit_cost: '1' })
     }
 
     const handleCreateVolunteer = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        const res = await createUserAction(newVolunteer)
+        const res = await createUserAction({
+            ...newVolunteer,
+            credits: parseFloat(newVolunteer.credits) || 0
+        })
         if (res.success) {
             setIsAddingVolunteer(false)
-            setNewVolunteer({ name: '', tapauu_id: '', phone: '', credits: 10 })
+            setNewVolunteer({ name: '', tapauu_id: '', phone: '', credits: '10' })
             router.refresh()
         } else {
             alert((res as any).error)
@@ -355,7 +362,7 @@ export default function AdminDashboard({
                                     <CardDescription>Add a new student to the pilot program.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <form onSubmit={handleCreateVolunteer} className="grid md:grid-cols-4 gap-4">
+                                    <form onSubmit={handleCreateVolunteer} className="grid md:grid-cols-5 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">TAPAUU ID</label>
                                             <Input placeholder="STU999" value={newVolunteer.tapauu_id} onChange={e => setNewVolunteer({ ...newVolunteer, tapauu_id: e.target.value.toUpperCase() })} required />
@@ -367,6 +374,10 @@ export default function AdminDashboard({
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">Phone</label>
                                             <Input placeholder="012-3456789" value={newVolunteer.phone} onChange={e => setNewVolunteer({ ...newVolunteer, phone: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
+                                            <Input type="number" step="any" value={newVolunteer.credits} onChange={e => setNewVolunteer({ ...newVolunteer, credits: e.target.value })} />
                                         </div>
                                         <div className="flex items-end gap-2">
                                             <Button type="submit" className="flex-1 font-black" disabled={loading}>Save Volunteer</Button>
@@ -415,9 +426,9 @@ export default function AdminDashboard({
                                                                 step="any"
                                                                 className="w-16 h-7 border border-slate-200 rounded px-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
                                                                 value={editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits}
-                                                                onChange={e => setEditingCredits(prev => ({ ...prev, [user.id]: Number(e.target.value) }))}
-                                                                onBlur={() => handleSetCredits(user.id, editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits)}
-                                                                onKeyDown={e => { if (e.key === 'Enter') handleSetCredits(user.id, editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits) }}
+                                                                onChange={e => setEditingCredits(prev => ({ ...prev, [user.id]: e.target.value }))}
+                                                                onBlur={() => handleSetCredits(user.id, parseFloat(editingCredits[user.id] !== undefined ? editingCredits[user.id] : String(user.credits)))}
+                                                                onKeyDown={e => { if (e.key === 'Enter') handleSetCredits(user.id, parseFloat(editingCredits[user.id] !== undefined ? editingCredits[user.id] : String(user.credits))) }}
                                                                 disabled={loading}
                                                             />
                                                             <span className="text-xs text-slate-400 font-bold">cr</span>
@@ -501,7 +512,7 @@ export default function AdminDashboard({
                                                             <Input
                                                                 type="number"
                                                                 value={editForm.limit}
-                                                                onChange={e => setEditForm({ ...editForm, limit: Number(e.target.value) })}
+                                                                onChange={e => setEditForm({ ...editForm, limit: e.target.value })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -511,7 +522,7 @@ export default function AdminDashboard({
                                                                 min={0}
                                                                 step="any"
                                                                 value={editForm.credit_cost}
-                                                                onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
+                                                                onChange={e => setEditForm({ ...editForm, credit_cost: e.target.value })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -548,7 +559,7 @@ export default function AdminDashboard({
                                                             <Input
                                                                 type="number"
                                                                 value={editForm.limit}
-                                                                onChange={e => setEditForm({ ...editForm, limit: Number(e.target.value) })}
+                                                                onChange={e => setEditForm({ ...editForm, limit: e.target.value })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -558,7 +569,7 @@ export default function AdminDashboard({
                                                                 min={0}
                                                                 step="any"
                                                                 value={editForm.credit_cost}
-                                                                onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
+                                                                onChange={e => setEditForm({ ...editForm, credit_cost: e.target.value })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
