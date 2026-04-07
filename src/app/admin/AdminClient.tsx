@@ -412,6 +412,7 @@ export default function AdminDashboard({
                                                             <input
                                                                 type="number"
                                                                 min={0}
+                                                                step="any"
                                                                 className="w-16 h-7 border border-slate-200 rounded px-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
                                                                 value={editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits}
                                                                 onChange={e => setEditingCredits(prev => ({ ...prev, [user.id]: Number(e.target.value) }))}
@@ -507,7 +508,8 @@ export default function AdminDashboard({
                                                             <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
                                                             <Input
                                                                 type="number"
-                                                                min={1}
+                                                                min={0}
+                                                                step="any"
                                                                 value={editForm.credit_cost}
                                                                 onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
                                                             />
@@ -553,7 +555,8 @@ export default function AdminDashboard({
                                                             <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
                                                             <Input
                                                                 type="number"
-                                                                min={1}
+                                                                min={0}
+                                                                step="any"
                                                                 value={editForm.credit_cost}
                                                                 onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
                                                             />
