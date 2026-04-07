@@ -1,4 +1,5 @@
 import { supabaseAdmin as supabase } from './supabase-admin'
+import { getMYTDateString, getMYTCutoff } from './utils'
 
 export type User = {
     id: string;
@@ -24,6 +25,7 @@ export type DailyMeal = {
     limit: number;
     remaining: number;
     cutoff: string;
+    credit_cost: number;
 };
 
 export type Reservation = {
@@ -34,11 +36,12 @@ export type Reservation = {
     date: string;
     voucher: string;
     status: 'reserved' | 'redeemed' | 'expired' | 'cancelled';
+    pickup_time: string;
     created_at: string;
 };
 
 export function getTodayStr() {
-    return new Date().toISOString().split('T')[0];
+    return getMYTDateString();
 }
 
 // Supabase powered DB functions
@@ -53,7 +56,8 @@ export async function getDBData() {
     // Map any field names if necessary (e.g., limit -> slots_limit)
     const meals = (mealsRes.data || []).map(m => ({
         ...m,
-        limit: m.slots_limit
+        limit: m.slots_limit,
+        credit_cost: m.credit_cost || 1
     }));
 
     return {
@@ -67,7 +71,7 @@ export async function getDBData() {
 export async function getTodayMeals() {
     const today = getTodayStr();
     const { data } = await supabase.from('daily_meals').select('*').eq('date', today);
-    return (data || []).map(m => ({ ...m, limit: m.slots_limit }));
+    return (data || []).map(m => ({ ...m, limit: m.slots_limit, credit_cost: m.credit_cost || 1 }));
 }
 
 export async function getUserById(tapauuId: string) {
@@ -79,20 +83,21 @@ export async function getUserById(tapauuId: string) {
     return data as User | null;
 }
 
-export async function makeReservation(tapauuId: string, mealId: string) {
+export async function makeReservation(tapauuId: string, mealId: string, pickupTime: string) {
     // 1. Get user and meal
     const { data: user } = await supabase.from('users').select('*').eq('tapauu_id', tapauuId).single();
     const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', mealId).single();
 
     if (!user || !meal) throw new Error('User or Meal not found');
-    if (user.credits <= 0) throw new Error('Insufficient credits');
+
+    const cost = meal.credit_cost || 1;
+    if (user.credits < cost) throw new Error(`Insufficient credits (Need ${cost}, have ${user.credits})`);
     if (meal.remaining <= 0) throw new Error('Meal sold out');
 
-    // 2. Check cutoff
+    // 2. Check cutoff (using MYT)
     const now = new Date();
-    const [hours, minutes] = meal.cutoff.split(':').map(Number);
-    const cutoffTime = new Date();
-    cutoffTime.setHours(hours, minutes, 0, 0);
+    const cutoffTime = getMYTCutoff(meal.date, meal.cutoff);
+
     if (now > cutoffTime) throw new Error('Reservation closed (cutoff passed)');
 
     // 3. Check duplicate
@@ -125,6 +130,7 @@ export async function makeReservation(tapauuId: string, mealId: string) {
         date: meal.date,
         voucher: voucherCode,
         status: 'reserved',
+        pickup_time: pickupTime,
         created_at: new Date().toISOString()
     };
 
@@ -133,7 +139,7 @@ export async function makeReservation(tapauuId: string, mealId: string) {
     if (resErr) throw resErr;
 
     await supabase.from('daily_meals').update({ remaining: meal.remaining - 1 }).eq('id', meal.id);
-    await supabase.from('users').update({ credits: user.credits - 1 }).eq('id', user.id);
+    await supabase.from('users').update({ credits: user.credits - cost }).eq('id', user.id);
 
     return reservation;
 }
@@ -159,6 +165,7 @@ export async function createUser(user: Partial<User>) {
     const { error } = await supabase.from('users').insert({
         ...user,
         id,
+        credits: user.credits || 10,
         active: true
     });
     if (error) throw error;
@@ -183,6 +190,13 @@ export async function updateVendor(vendorId: string, updates: Partial<Vendor>) {
 }
 
 export async function deleteVendor(vendorId: string) {
+    // Delete child records first to avoid FK constraint errors
+    const { error: resErr } = await supabase.from('reservations').delete().eq('vendor_id', vendorId);
+    if (resErr) throw resErr;
+
+    const { error: mealErr } = await supabase.from('daily_meals').delete().eq('vendor_id', vendorId);
+    if (mealErr) throw mealErr;
+
     const { error } = await supabase.from('vendors').delete().eq('id', vendorId);
     if (error) throw error;
     return { success: true };
@@ -204,7 +218,8 @@ export async function updateMeal(mealId: string, updates: any) {
     const data: any = {
         meal_name: updates.meal_name,
         cutoff: updates.cutoff,
-        slots_limit: updates.limit
+        slots_limit: updates.limit,
+        credit_cost: updates.credit_cost || 1
     };
     if (updates.remaining !== undefined) data.remaining = updates.remaining;
 
@@ -223,13 +238,18 @@ export async function createMeal(meal: any) {
         meal_name: meal.meal_name,
         slots_limit: meal.limit,
         remaining: meal.remaining,
-        cutoff: meal.cutoff
+        cutoff: meal.cutoff,
+        credit_cost: meal.credit_cost || 1
     });
     if (error) throw error;
     return { success: true };
 }
 
 export async function deleteMeal(mealId: string) {
+    // Delete child reservations first to avoid FK constraint error
+    const { error: resErr } = await supabase.from('reservations').delete().eq('meal_id', mealId);
+    if (resErr) throw resErr;
+
     const { error } = await supabase.from('daily_meals').delete().eq('id', mealId);
     if (error) throw error;
     return { success: true };

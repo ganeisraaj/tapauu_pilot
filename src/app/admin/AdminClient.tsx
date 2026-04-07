@@ -33,8 +33,9 @@ export default function AdminDashboard({
     const [isAddingVendor, setIsAddingVendor] = useState(false)
     const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: 10 })
     const [newVendor, setNewVendor] = useState({ name: '', code: '' })
-    const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: 20 })
+    const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: 20, credit_cost: 1 })
     const [selectedDate, setSelectedDate] = useState<string>('')
+    const [editingCredits, setEditingCredits] = useState<{ [userId: string]: number }>({})
 
     React.useEffect(() => {
         const today = new Date().toISOString().split('T')[0]
@@ -128,11 +129,11 @@ export default function AdminDashboard({
         setLoading(false)
     }
 
-    const handleUpdateCredits = async (userId: string, delta: number) => {
-        const user = users.find(u => u.id === userId)
-        if (!user) return
+    const handleSetCredits = async (userId: string, newCredits: number) => {
+        if (isNaN(newCredits) || newCredits < 0) return
         setLoading(true)
-        await updateUserAction(userId, { credits: user.credits + delta })
+        await updateUserAction(userId, { credits: newCredits })
+        setEditingCredits(prev => { const n = { ...prev }; delete n[userId]; return n })
         router.refresh()
         setLoading(false)
     }
@@ -157,7 +158,8 @@ export default function AdminDashboard({
             meal_name: editForm.meal_name || "New Meal",
             limit: Number(editForm.limit) || 20,
             cutoff: editForm.cutoff || "11:05",
-            remaining: Number(editForm.limit) || 20
+            remaining: Number(editForm.limit) || 20,
+            credit_cost: Number(editForm.credit_cost) || 1
         })
         if (res.success) {
             setAddingToVendor(null)
@@ -182,12 +184,12 @@ export default function AdminDashboard({
 
     const startEditing = (meal: DailyMeal) => {
         setEditingMeal(meal.id)
-        setEditForm({ meal_name: meal.meal_name, cutoff: meal.cutoff, limit: meal.limit })
+        setEditForm({ meal_name: meal.meal_name, cutoff: meal.cutoff, limit: meal.limit, credit_cost: meal.credit_cost ?? 1 })
     }
 
     const startAdding = (vendorId: string) => {
         setAddingToVendor(vendorId)
-        setEditForm({ meal_name: '', cutoff: '11:05', limit: 20 })
+        setEditForm({ meal_name: '', cutoff: '11:05', limit: 20, credit_cost: 1 })
     }
 
     const handleCreateVolunteer = async (e: React.FormEvent) => {
@@ -407,11 +409,17 @@ export default function AdminDashboard({
                                                     </td>
                                                     <td className="p-4">
                                                         <div className="flex items-center gap-2">
-                                                            {user.credits}
-                                                            <div className="flex gap-1">
-                                                                <button onClick={() => handleUpdateCredits(user.id, -1)} className="h-5 w-5 bg-slate-100 rounded text-slate-500 hover:bg-slate-200">-</button>
-                                                                <button onClick={() => handleUpdateCredits(user.id, 1)} className="h-5 w-5 bg-slate-100 rounded text-slate-500 hover:bg-slate-200">+</button>
-                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                min={0}
+                                                                className="w-16 h-7 border border-slate-200 rounded px-2 text-sm font-mono text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                                value={editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits}
+                                                                onChange={e => setEditingCredits(prev => ({ ...prev, [user.id]: Number(e.target.value) }))}
+                                                                onBlur={() => handleSetCredits(user.id, editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits)}
+                                                                onKeyDown={e => { if (e.key === 'Enter') handleSetCredits(user.id, editingCredits[user.id] !== undefined ? editingCredits[user.id] : user.credits) }}
+                                                                disabled={loading}
+                                                            />
+                                                            <span className="text-xs text-slate-400 font-bold">cr</span>
                                                         </div>
                                                     </td>
                                                     <td className="p-4">
@@ -466,7 +474,10 @@ export default function AdminDashboard({
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
                                                 <Badge className="bg-primary/10 text-primary border-none">{vendor.name}</Badge>
-                                                {meal && <span className="text-[10px] font-black uppercase text-slate-400">{meal.cutoff} Cutoff</span>}
+                                                <div className="flex flex-col items-end gap-1">
+                                                    {meal && <span className="text-[10px] font-black uppercase text-slate-400">{meal.cutoff} Cutoff</span>}
+                                                    {meal && <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">💳 {meal.credit_cost ?? 1} credit{(meal.credit_cost ?? 1) !== 1 ? 's' : ''}</span>}
+                                                </div>
                                             </div>
                                             <CardTitle className="text-xl mt-2">
                                                 {meal ? meal.meal_name : "Empty Slot"}
@@ -483,13 +494,22 @@ export default function AdminDashboard({
                                                             onChange={e => setEditForm({ ...editForm, meal_name: e.target.value })}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-3">
+                                                    <div className="grid grid-cols-3 gap-3">
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] uppercase font-black text-slate-400">Slots</label>
                                                             <Input
                                                                 type="number"
                                                                 value={editForm.limit}
                                                                 onChange={e => setEditForm({ ...editForm, limit: Number(e.target.value) })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                value={editForm.credit_cost}
+                                                                onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -520,13 +540,22 @@ export default function AdminDashboard({
                                                             onChange={e => setEditForm({ ...editForm, meal_name: e.target.value })}
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-3">
+                                                    <div className="grid grid-cols-3 gap-3">
                                                         <div className="space-y-1">
                                                             <label className="text-[10px] uppercase font-black text-slate-400">Slots</label>
                                                             <Input
                                                                 type="number"
                                                                 value={editForm.limit}
                                                                 onChange={e => setEditForm({ ...editForm, limit: Number(e.target.value) })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                value={editForm.credit_cost}
+                                                                onChange={e => setEditForm({ ...editForm, credit_cost: Number(e.target.value) })}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">

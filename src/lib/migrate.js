@@ -46,7 +46,8 @@ async function migrate() {
             meal_name: meal.meal_name,
             slots_limit: meal.limit,
             remaining: meal.remaining,
-            cutoff: meal.cutoff
+            cutoff: meal.cutoff,
+            credit_cost: meal.credit_cost || 1
         };
         const { error } = await supabase.from('daily_meals').upsert(mealData);
         if (error) console.error(`Error migrating meal ${meal.id}:`, error);

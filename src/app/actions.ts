@@ -23,13 +23,15 @@ import { revalidatePath } from 'next/cache'
 export async function reserveMealAction(formData: FormData) {
     const tapauuId = formData.get('tapauuId') as string
     const mealId = formData.get('mealId') as string
+    const pickupTime = formData.get('pickupTime') as string
 
-    if (!tapauuId || !mealId) {
+
+    if (!tapauuId || !mealId || !pickupTime) {
         return { error: 'Missing required information' }
     }
 
     try {
-        const res = await makeReservation(tapauuId, mealId)
+        const res = await makeReservation(tapauuId, mealId, pickupTime)
         revalidatePath('/')
         return { success: true, reservation: res }
     } catch (error: any) {

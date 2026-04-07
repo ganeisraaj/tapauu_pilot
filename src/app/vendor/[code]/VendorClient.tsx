@@ -156,7 +156,7 @@ export default function VendorDashboard({
                                                 </div>
                                                 <div>
                                                     <p className="font-mono font-bold text-slate-900">{res.voucher}</p>
-                                                    <p className="text-xs text-slate-400 font-medium">Status: {res.status.toUpperCase()}</p>
+                                                    <p className="text-xs text-slate-500 font-medium">Pickup: <span className="text-primary font-bold">{res.pickup_time}</span> • Status: {res.status.toUpperCase()}</p>
                                                 </div>
                                             </div>
                                             {res.status === 'reserved' ? (

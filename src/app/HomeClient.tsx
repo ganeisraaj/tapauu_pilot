@@ -24,6 +24,7 @@ export default function Home({
     const [todayReservation, setTodayReservation] = useState<Reservation | null>(null)
     const [tomorrowReservation, setTomorrowReservation] = useState<Reservation | null>(null)
     const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow'>('today')
+    const [selectedPickupTimes, setSelectedPickupTimes] = useState<Record<string, string>>({})
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -62,11 +63,13 @@ export default function Home({
     }
 
     const handleReserve = async (mealId: string) => {
-        if (!user) return
+        const pickupTime = selectedPickupTimes[mealId]
+        if (!user || !pickupTime) return
         setLoading(true)
         const formData = new FormData()
         formData.append('tapauuId', user.tapauu_id)
         formData.append('mealId', mealId)
+        formData.append('pickupTime', pickupTime)
 
         const res = await reserveMealAction(formData)
         if (res.success) {
@@ -199,7 +202,10 @@ export default function Home({
 
                                         <div className="flex justify-between items-center text-sm font-medium pt-4 border-t border-green-100">
                                             <span className="text-slate-500">Scheduled:</span>
-                                            <span className="text-slate-900 font-black italic">{initialMeals.find(m => m.id === todayReservation.meal_id)?.meal_name}</span>
+                                            <div className="text-right">
+                                                <p className="text-slate-900 font-black italic">{initialMeals.find(m => m.id === todayReservation.meal_id)?.meal_name}</p>
+                                                <p className="text-xs text-green-600 font-bold">Pickup: {todayReservation.pickup_time}</p>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -210,8 +216,11 @@ export default function Home({
                                     <div className="text-4xl">🗓️</div>
                                     <h2 className="text-xl font-black text-blue-900">Tomorrow is Sorted!</h2>
                                     <p className="text-blue-600/80 font-medium max-w-xs mx-auto">
-                                        You've already booked <span className="font-bold underline text-blue-800">{initialMeals.find(m => m.id === tomorrowReservation.meal_id)?.meal_name}</span> for tomorrow.
+                                        You've booked <span className="font-bold underline text-blue-800">{initialMeals.find(m => m.id === tomorrowReservation.meal_id)?.meal_name}</span> for tomorrow.
                                     </p>
+                                    <Badge variant="outline" className="bg-blue-100/50 text-blue-700 border-blue-200 font-black">
+                                        Pickup: {tomorrowReservation.pickup_time}
+                                    </Badge>
                                     <p className="text-[10px] font-black uppercase text-blue-400 tracking-tighter">Your voucher will appear here on {tomorrowReservation.date}</p>
                                 </Card>
                             </motion.div>
@@ -274,17 +283,43 @@ export default function Home({
                                                                     <CardTitle className="text-xl font-bold">{meal.meal_name}</CardTitle>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <span className="text-2xl font-black text-primary">1</span>
-                                                                    <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Credit</p>
+                                                                    <span className="text-2xl font-black text-primary">{meal.credit_cost || 1}</span>
+                                                                    <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Credit{(meal.credit_cost || 1) !== 1 ? 's' : ''}</p>
                                                                 </div>
                                                             </div>
                                                         </CardHeader>
+
+                                                        {/* Pickup Time Selection */}
+                                                        {!isDisabled && (
+                                                            <CardContent className="p-5 pt-0 space-y-3">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Pickup Time</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {['12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00'].map(time => (
+                                                                        <button
+                                                                            key={time}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedPickupTimes(prev => ({ ...prev, [meal.id]: time }));
+                                                                            }}
+                                                                            className={cn(
+                                                                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2",
+                                                                                selectedPickupTimes[meal.id] === time
+                                                                                    ? "bg-primary text-white border-primary shadow-md scale-105"
+                                                                                    : "bg-slate-50 text-slate-500 border-slate-100 hover:border-primary/30"
+                                                                            )}
+                                                                        >
+                                                                            {time}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </CardContent>
+                                                        )}
                                                         <CardFooter className="p-5 pt-0 flex justify-between items-center">
                                                             <div className="flex items-center gap-3">
                                                                 <span className="text-xs font-bold text-slate-600">{meal.remaining}/{meal.limit} slots left</span>
                                                             </div>
                                                             <Button
-                                                                disabled={isDisabled}
+                                                                disabled={isDisabled || !selectedPickupTimes[meal.id]}
                                                                 onClick={() => handleReserve(meal.id)}
                                                                 size="sm"
                                                                 className={cn(
@@ -292,7 +327,7 @@ export default function Home({
                                                                     selectedDay === 'tomorrow' ? "bg-blue-600 hover:bg-blue-700" : ""
                                                                 )}
                                                             >
-                                                                {displayStatus}
+                                                                {!selectedPickupTimes[meal.id] && !isDisabled ? 'Choose Time' : displayStatus}
                                                             </Button>
                                                         </CardFooter>
                                                     </Card>
@@ -321,7 +356,7 @@ export default function Home({
                                             <div key={res.id} className="p-4 flex items-center justify-between text-sm">
                                                 <div className="space-y-1">
                                                     <p className="font-bold text-slate-900">{res.date}</p>
-                                                    <p className="text-xs text-slate-500 font-mono">{res.voucher}</p>
+                                                    <p className="text-xs text-slate-500 font-mono">{res.voucher} • {res.pickup_time}</p>
                                                 </div>
                                                 <Badge variant="outline" className={cn(
                                                     "font-bold uppercase text-[10px]",
