@@ -36,6 +36,10 @@ export default function AdminDashboard({
     const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: '20', credit_cost: '1' })
     const [selectedDate, setSelectedDate] = useState<string>('')
     const [editingCredits, setEditingCredits] = useState<{ [userId: string]: string }>({})
+    const [pilotStart, setPilotStart] = useState('2025-03-23')
+    const [pilotEnd, setPilotEnd] = useState('2025-04-01')
+    const [editingPilot, setEditingPilot] = useState(false)
+    const [pilotDraft, setPilotDraft] = useState({ start: '2025-03-23', end: '2025-04-01' })
 
     React.useEffect(() => {
         const today = new Date().toISOString().split('T')[0]
@@ -458,7 +462,39 @@ export default function AdminDashboard({
                     <motion.div key="meals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border shadow-sm">
                             <h2 className="text-xl font-bold flex items-center gap-2">
-                                Daily Meals & Limits <Badge className="bg-primary text-white">Pilot Window: Mar 23 - Apr 01</Badge>
+                                Daily Meals & Limits
+                                {editingPilot ? (
+                                    <span className="flex items-center gap-2">
+                                        <input
+                                            type="date"
+                                            value={pilotDraft.start}
+                                            onChange={e => setPilotDraft(d => ({ ...d, start: e.target.value }))}
+                                            className="h-7 border border-slate-300 rounded-md px-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        />
+                                        <span className="text-slate-400 text-sm">—</span>
+                                        <input
+                                            type="date"
+                                            value={pilotDraft.end}
+                                            onChange={e => setPilotDraft(d => ({ ...d, end: e.target.value }))}
+                                            className="h-7 border border-slate-300 rounded-md px-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                        />
+                                        <button
+                                            onClick={() => { setPilotStart(pilotDraft.start); setPilotEnd(pilotDraft.end); setEditingPilot(false) }}
+                                            className="h-7 px-2 bg-primary text-white rounded-md text-xs font-black hover:bg-primary/90 transition-colors"
+                                        >Save</button>
+                                        <button
+                                            onClick={() => { setPilotDraft({ start: pilotStart, end: pilotEnd }); setEditingPilot(false) }}
+                                            className="h-7 px-2 text-slate-500 hover:text-slate-800 text-xs font-bold transition-colors"
+                                        >Cancel</button>
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center gap-1">
+                                        <Badge className="bg-primary text-white">Pilot Window: {new Date(pilotStart + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – {new Date(pilotEnd + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Badge>
+                                        <button onClick={() => { setPilotDraft({ start: pilotStart, end: pilotEnd }); setEditingPilot(true) }} className="p-1 text-slate-400 hover:text-primary transition-colors" title="Edit pilot window">
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </span>
+                                )}
                             </h2>
                             <div className="flex items-center gap-4">
                                 <Button variant="outline" size="sm" onClick={() => {
