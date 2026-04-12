@@ -269,7 +269,7 @@ export default function Home({
                                             const isDisabled = isSoldOut || (isToday && isCutoff) || loading
 
                                             // Determine pickup times based on vendor
-                                            const isBrianiHouse = vendor?.name.toLowerCase().includes('briani') || vendor?.name.toLowerCase().includes('biryani');
+                                            const isBrianiHouse = ['briani', 'biryani', 'biriani'].some(term => vendor?.name.toLowerCase().includes(term));
                                             const startHour = isBrianiHouse ? 13 : 12;
                                             const endHour = 15;
                                             const pickupTimes = [];
