@@ -268,6 +268,18 @@ export default function Home({
                                             const displayStatus = isSoldOut ? 'Sold Out' : (isToday && isCutoff) ? 'Closed' : selectedDay === 'tomorrow' ? 'Pre-book Now 🗓️' : 'Reserve'
                                             const isDisabled = isSoldOut || (isToday && isCutoff) || loading
 
+                                            // Determine pickup times based on vendor
+                                            const isBrianiHouse = vendor?.name.toLowerCase().includes('briani') || vendor?.name.toLowerCase().includes('biryani');
+                                            const startHour = isBrianiHouse ? 13 : 12;
+                                            const endHour = 15;
+                                            const pickupTimes = [];
+                                            for (let h = startHour; h <= endHour; h++) {
+                                                for (let m = 0; m < 60; m += 15) {
+                                                    if (h === endHour && m > 0) break;
+                                                    pickupTimes.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+                                                }
+                                            }
+
                                             return (
                                                 <motion.div key={meal.id} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
                                                     <Card className={cn(
@@ -294,7 +306,7 @@ export default function Home({
                                                             <CardContent className="p-5 pt-0 space-y-3">
                                                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Pickup Time</p>
                                                                 <div className="flex flex-wrap gap-2">
-                                                                    {['12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00'].map(time => (
+                                                                    {pickupTimes.map(time => (
                                                                         <button
                                                                             key={time}
                                                                             onClick={(e) => {
