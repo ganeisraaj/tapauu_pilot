@@ -254,3 +254,27 @@ export async function deleteMeal(mealId: string) {
     if (error) throw error;
     return { success: true };
 }
+
+export async function deleteReservation(reservationId: string) {
+    // 1. Get the reservation first to know what to refund
+    const { data: res } = await supabase.from('reservations').select('*').eq('id', reservationId).single();
+    if (!res) throw new Error('Reservation not found');
+
+    // 2. If it was reserved (not redeemed), refund the user and restore meal slot
+    if (res.status === 'reserved' || res.status === 'cancelled') {
+        const { data: user } = await supabase.from('users').select('*').eq('id', res.user_id).single();
+        const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', res.meal_id).single();
+
+        if (user && meal) {
+            const cost = meal.credit_cost || 1;
+            await supabase.from('users').update({ credits: user.credits + cost }).eq('id', user.id);
+            await supabase.from('daily_meals').update({ remaining: meal.remaining + 1 }).eq('id', meal.id);
+        }
+    }
+
+    // 3. Delete the reservation
+    const { error } = await supabase.from('reservations').delete().eq('id', reservationId);
+    if (error) throw error;
+
+    return { success: true };
+}

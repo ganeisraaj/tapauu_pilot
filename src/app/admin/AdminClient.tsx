@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Input, Badge } from '@/components/ui-base'
-import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction, createUserAction, createVendorAction, deleteVendorAction, deleteUserAction, updateVendorAction } from '../actions'
+import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction, createUserAction, createVendorAction, deleteVendorAction, deleteUserAction, updateVendorAction, deleteReservationAction } from '../actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
 import { Users, LayoutDashboard, Settings, ListChecks, Search, Save, Check, X, TrendingUp, AlertCircle, Trash2, Utensils, LogOut, UserPlus, Store, Edit3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -252,6 +252,15 @@ export default function AdminDashboard({
         setLoading(true)
         const res = await redeemAction(voucher)
         if (!res.success) alert(res.error)
+        setLoading(false)
+    }
+
+    const handleDeleteReservation = async (reservationId: string) => {
+        if (!confirm('Are you sure you want to delete this booking? Credits will be refunded and the meal slot will be restored.')) return
+        setLoading(true)
+        const res = await deleteReservationAction(reservationId)
+        if (!res.success) alert(res.error)
+        router.refresh()
         setLoading(false)
     }
 
@@ -717,11 +726,22 @@ export default function AdminDashboard({
                                                             </Badge>
                                                         </td>
                                                         <td className="p-4 text-right">
-                                                            {res.status === 'reserved' ? (
-                                                                <Button size="sm" onClick={() => handleRedeem(res.voucher)} className="h-8">Mark Done</Button>
-                                                            ) : (
-                                                                <Check className="h-4 w-4 text-green-500 ml-auto" />
-                                                            )}
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {res.status === 'reserved' ? (
+                                                                    <Button size="sm" onClick={() => handleRedeem(res.voucher)} className="h-8">Mark Done</Button>
+                                                                ) : (
+                                                                    <Check className="h-4 w-4 text-green-500" />
+                                                                )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-slate-300 hover:text-red-500 transition-colors"
+                                                                    onClick={() => handleDeleteReservation(res.id)}
+                                                                    disabled={loading}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 )

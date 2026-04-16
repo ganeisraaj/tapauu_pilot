@@ -14,6 +14,7 @@ import {
     updateVendor,
     deleteVendor,
     deleteUser,
+    deleteReservation,
     type User,
     type Vendor,
     type DailyMeal
@@ -148,6 +149,17 @@ export async function deleteUserAction(userId: string) {
     try {
         await deleteUser(userId)
         revalidatePath('/admin')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+export async function deleteReservationAction(reservationId: string) {
+    try {
+        await deleteReservation(reservationId)
+        revalidatePath('/admin')
+        revalidatePath('/')
         return { success: true }
     } catch (error: any) {
         return { error: error.message }
