@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle, Phone, Fingerprint } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle, Phone } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,6 @@ export default function SignupPage() {
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
-    const [tapauuId, setTapauuId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
@@ -44,6 +43,9 @@ export default function SignupPage() {
 
             if (authData.user) {
                 // 2. Create profile in public.users table
+                // Generate a unique TAPAUU ID if still needed by the schema
+                const generatedId = "STU-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+
                 const { error: profileError } = await supabase
                     .from("users")
                     .insert({
@@ -51,7 +53,7 @@ export default function SignupPage() {
                         name: name,
                         email: email,
                         phone: phone,
-                        tapauu_id: tapauuId.toUpperCase(),
+                        tapauu_id: generatedId,
                         credits: 10, // Starting credits for student
                         active: true,
                     });
@@ -59,7 +61,7 @@ export default function SignupPage() {
                 if (profileError) {
                     setError("Profile creation failed: " + profileError.message);
                 } else {
-                    localStorage.setItem("tapauu_id", tapauuId.toUpperCase());
+                    localStorage.setItem("tapauu_id", generatedId);
                     router.push("/");
                     router.refresh();
                 }
@@ -122,21 +124,6 @@ export default function SignupPage() {
                                     className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-primary/30 focus:outline-none transition-all text-sm font-medium"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-foreground/70 ml-1">TAPAUU ID</label>
-                            <div className="relative group">
-                                <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <input
-                                    type="text"
-                                    placeholder="STU102"
-                                    className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-primary/30 focus:outline-none transition-all text-sm font-medium uppercase"
-                                    value={tapauuId}
-                                    onChange={(e) => setTapauuId(e.target.value)}
                                     required
                                 />
                             </div>
