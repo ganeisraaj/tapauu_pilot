@@ -23,30 +23,31 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: var(--font-sora);
 }
 
 @layer base {
   :root {
-    --background: hsl(210 40% 98%);
-    --foreground: hsl(222 47% 11%);
+    --background: hsl(30 20% 97%);
+    --foreground: hsl(20 20% 15%);
     --card: hsl(0 0% 100%);
-    --card-foreground: hsl(222 47% 11%);
+    --card-foreground: hsl(20 20% 15%);
     --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222 47% 11%);
-    --primary: hsl(15 100% 50%);
-    --primary-foreground: hsl(210 40% 98%);
-    --secondary: hsl(210 40% 96%);
-    --secondary-foreground: hsl(222 47% 11%);
-    --muted: hsl(210 40% 96%);
-    --muted-foreground: hsl(215 16% 47%);
-    --accent: hsl(210 40% 96%);
-    --accent-foreground: hsl(222 47% 11%);
+    --popover-foreground: hsl(20 20% 15%);
+    --primary: hsl(16 88% 59%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(30 15% 92%);
+    --secondary-foreground: hsl(20 20% 15%);
+    --muted: hsl(30 10% 90%);
+    --muted-foreground: hsl(20 10% 45%);
+    --accent: hsl(16 88% 95%);
+    --accent-foreground: hsl(16 88% 40%);
     --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(214 32% 91%);
-    --input: hsl(214 32% 91%);
-    --ring: hsl(15 100% 50%);
-    --radius: 0.75rem;
+    --destructive-foreground: hsl(0 0% 100%);
+    --border: hsl(30 10% 85%);
+    --input: hsl(30 10% 85%);
+    --ring: hsl(16 88% 59%);
+    --radius: 1rem;
   }
 
   .dark {

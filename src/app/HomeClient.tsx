@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, Badge } from '@/components/ui-base'
+import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge } from '@/components/ui-base'
 import { reserveMealAction, checkUserAction } from './actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
-import { Utensils, Clock, CheckCircle, History, User as UserIcon, LogOut, ArrowRight, Wallet } from 'lucide-react'
+import { Utensils, Clock, Home as HomeIcon, History, User as UserIcon, LogOut, Wallet, QrCode, MapPin, ChevronRight, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, getMYTDateString } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 export default function Home({
     initialMeals,
@@ -17,47 +18,33 @@ export default function Home({
     initialVendors: Vendor[],
     allReservations: Reservation[]
 }) {
-    const [tapauuId, setTapauuId] = useState<string>('')
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const [todayReservation, setTodayReservation] = useState<Reservation | null>(null)
-    const [tomorrowReservation, setTomorrowReservation] = useState<Reservation | null>(null)
     const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow'>('today')
     const [selectedPickupTimes, setSelectedPickupTimes] = useState<Record<string, string>>({})
     const [mounted, setMounted] = useState(false)
+    const [activeTab, setActiveTab] = useState('home')
+    const router = useRouter()
 
     useEffect(() => {
         setMounted(true)
         const savedId = localStorage.getItem('tapauu_id')
         if (savedId) {
-            setTapauuId(savedId)
             handleCheckUser(savedId)
+        } else {
+            router.push('/login')
         }
     }, [])
 
-    useEffect(() => {
-        if (user) {
-            const today = getMYTDateString()
-            const tomorrow = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
-
-            setTodayReservation(allReservations.find(r => r.user_id === user.id && r.date === today) || null)
-            setTomorrowReservation(allReservations.find(r => r.user_id === user.id && r.date === tomorrow) || null)
-        }
-    }, [user, allReservations])
-
-    const handleCheckUser = async (id?: string) => {
-        const targetId = id || tapauuId
-        if (!targetId) return
-
+    const handleCheckUser = async (id: string) => {
         setLoading(true)
-        const res = await checkUserAction(targetId)
+        const res = await checkUserAction(id)
         if (res.success && res.user) {
             setUser(res.user)
-            localStorage.setItem('tapauu_id', targetId)
-            setMessage(null)
         } else {
-            setMessage({ type: 'error', text: res.error || 'User not found' })
+            localStorage.removeItem('tapauu_id')
+            router.push('/login')
         }
         setLoading(false)
     }
@@ -74,7 +61,6 @@ export default function Home({
         const res = await reserveMealAction(formData)
         if (res.success) {
             setMessage({ type: 'success', text: 'Reservation successful!' })
-            // Reload is handled by revalidatePath, but we might need to update local state
             window.location.reload()
         } else {
             setMessage({ type: 'error', text: res.error || 'Reservation failed' })
@@ -84,88 +70,116 @@ export default function Home({
 
     const handleLogout = () => {
         localStorage.removeItem('tapauu_id')
-        setUser(null)
-        setTapauuId('')
+        router.push('/login')
     }
 
-    const todayStr = mounted ? new Date().toLocaleDateString('en-MY', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    }) : ''
+    if (!user || !mounted) return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="h-12 w-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+    )
+
+    const todayReservation = allReservations.find(r => r.user_id === user.id && r.date === getMYTDateString())
+    const mealsLeft = user.credits || 0
 
     return (
-        <div className="container max-w-2xl mx-auto p-4 py-8 space-y-8">
-            {/* Welcome Header */}
-            <section className="text-center space-y-2">
-                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center gap-2">
-                    Selamat Datang! <motion.span animate={{ rotate: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 2 }}>👋</motion.span>
-                </h1>
-                <p className="text-slate-500 font-medium flex items-center justify-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" /> {todayStr}
-                </p>
-            </section>
+        <div className="flex flex-col min-h-screen bg-background pb-24">
+            {/* Top Navigation */}
+            <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md px-6 py-5 flex items-center justify-between">
+                <div className="h-10 w-auto">
+                    <img src="/logo.jpg" alt="TAPAUU" className="h-full w-auto object-contain" />
+                </div>
+                <Button size="icon" variant="ghost" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
+                    <LogOut size={20} />
+                </Button>
+            </header>
 
-            {!user ? (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Card className="border-2 border-primary/20 bg-white/50 backdrop-blur">
-                        <CardHeader>
-                            <CardTitle>Pilot Access</CardTitle>
-                            <CardDescription>Enter your TAPAUU ID to view today's meals.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Input
-                                placeholder="e.g. STU101"
-                                value={tapauuId}
-                                onChange={(e) => setTapauuId(e.target.value.toUpperCase())}
-                                onKeyDown={(e) => e.key === 'Enter' && handleCheckUser()}
-                                className="text-lg font-mono uppercase"
-                            />
-                            <Button onClick={() => handleCheckUser()} disabled={loading} className="w-full h-12 text-lg font-bold">
-                                {loading ? 'Checking...' : 'Explore Meals'}
-                            </Button>
-                            {message?.type === 'error' && (
-                                <p className="text-sm text-destructive font-medium text-center">{message.text}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            ) : (
-                <div className="space-y-8">
-                    {/* User Info Bar */}
-                    <div className="flex items-center justify-between p-4 bg-white rounded-2xl border shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                <UserIcon className="h-6 w-6 text-slate-500" />
+            <main className="flex-1 px-6 space-y-8">
+                {/* Greeting */}
+                <section className="space-y-1">
+                    <p className="text-muted-foreground font-medium">Hello there,</p>
+                    <h2 className="text-3xl font-black text-foreground">Hey, {user.name.split(' ')[0]} 👋</h2>
+                </section>
+
+                {/* Wallet Card */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative overflow-hidden group"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary to-orange-400 -rotate-2 group-hover:rotate-0 transition-transform duration-500 rounded-3xl" />
+                    <div className="relative bg-primary p-8 rounded-3xl text-white shadow-2xl shadow-primary/30 space-y-6">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <p className="text-white/70 text-sm font-bold uppercase tracking-wider">Wallet Balance</p>
+                                <h3 className="text-4xl font-black">RM{(mealsLeft * 7).toFixed(2)}</h3>
                             </div>
-                            <div>
-                                <p className="font-bold text-slate-900 leading-none">{user.name}</p>
-                                <p className="text-xs text-slate-500 mt-1">{user.tapauu_id}</p>
+                            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                                <Wallet size={24} />
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-right">
-                                <div className="flex items-center gap-1 text-primary font-bold">
-                                    <Wallet className="h-4 w-4" />
-                                    {user.credits}
-                                </div>
-                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Credits</p>
+
+                        <div className="flex items-center gap-4 pt-4 border-t border-white/20">
+                            <div className="flex-1">
+                                <p className="text-white/70 text-xs font-bold uppercase tracking-widest">Meals Remaining</p>
+                                <p className="text-xl font-black">{mealsLeft} meals left</p>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-400 hover:text-destructive">
-                                <LogOut className="h-5 w-5" />
+                            <Button className="bg-white text-primary hover:bg-white/90 font-black rounded-xl px-6 h-12 shadow-sm">
+                                Top Up
                             </Button>
                         </div>
                     </div>
+                </motion.div>
 
-                    {/* Meal Selection Tabs */}
-                    <div className="space-y-6">
-                        <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit">
+                {/* Today's Special / Active Reservation */}
+                {todayReservation && (
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-black text-foreground">Active Reservation</h3>
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 font-black">CONFIRMED</Badge>
+                        </div>
+                        <motion.div
+                            whileHover={{ y: -4 }}
+                            className="p-6 rounded-3xl bg-white border shadow-sm border-primary/20 bg-gradient-to-r from-orange-50 to-white"
+                        >
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">REDEMPTION CODE</p>
+                                    <h4 className="text-3xl font-black tracking-[0.2em] font-mono text-foreground uppercase">
+                                        {todayReservation.voucher}
+                                    </h4>
+                                </div>
+                                <div className="h-14 w-14 bg-white rounded-2xl shadow-sm border flex items-center justify-center text-primary">
+                                    <QrCode size={32} />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center pt-4 border-t border-primary/10">
+                                <div className="space-y-0.5">
+                                    <p className="text-sm font-black text-foreground">
+                                        {initialVendors.find(v => v.id === todayReservation.vendor_id)?.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Clock size={12} /> {todayReservation.pickup_time}
+                                    </p>
+                                </div>
+                                <Button size="sm" className="bg-primary/10 text-primary hover:bg-primary/20 border-none font-bold">
+                                    Redeem Meal
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </section>
+                )}
+
+                {/* Vendor List */}
+                <section className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black text-foreground">Available Meals</h3>
+                        <div className="flex bg-muted p-1 rounded-xl">
                             <button
                                 onClick={() => setSelectedDay('today')}
                                 className={cn(
-                                    "px-6 py-2 rounded-xl text-sm font-black transition-all",
-                                    selectedDay === 'today' ? "bg-white text-primary shadow-sm scale-105" : "text-slate-400"
+                                    "px-4 py-1.5 rounded-lg text-xs font-black transition-all",
+                                    selectedDay === 'today' ? "bg-white text-primary shadow-sm" : "text-muted-foreground"
                                 )}
                             >
                                 Today
@@ -173,218 +187,136 @@ export default function Home({
                             <button
                                 onClick={() => setSelectedDay('tomorrow')}
                                 className={cn(
-                                    "px-6 py-2 rounded-xl text-sm font-black transition-all",
-                                    selectedDay === 'tomorrow' ? "bg-white text-primary shadow-sm scale-105" : "text-slate-400"
+                                    "px-4 py-1.5 rounded-lg text-xs font-black transition-all",
+                                    selectedDay === 'tomorrow' ? "bg-white text-primary shadow-sm" : "text-muted-foreground"
                                 )}
                             >
-                                Tomorrow 🗓️
+                                Tomorrow
                             </button>
                         </div>
-
-                        {selectedDay === 'today' && todayReservation ? (
-                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                                <Card className="border-4 border-green-500 bg-green-50 overflow-hidden relative">
-                                    <div className="bg-green-500 p-2 text-center text-white text-xs font-bold uppercase tracking-widest">
-                                        Confirmed for Today
-                                    </div>
-                                    <CardContent className="p-8 space-y-6">
-                                        <div className="text-center">
-                                            <h2 className="text-2xl font-black text-slate-900 uppercase">You're All Set!</h2>
-                                            <p className="text-slate-600 font-medium">Enjoy your meal from {initialVendors.find(v => v.id === todayReservation.vendor_id)?.name}</p>
-                                        </div>
-
-                                        <div className="p-6 bg-white rounded-2xl border-2 border-dashed border-green-200 text-center space-y-2">
-                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Your Voucher</p>
-                                            <div className="text-4xl font-black tracking-tight text-green-600 font-mono">
-                                                {todayReservation.voucher}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center text-sm font-medium pt-4 border-t border-green-100">
-                                            <span className="text-slate-500">Scheduled:</span>
-                                            <div className="text-right">
-                                                <p className="text-slate-900 font-black italic">{initialMeals.find(m => m.id === todayReservation.meal_id)?.meal_name}</p>
-                                                <p className="text-xs text-green-600 font-bold">Pickup: {todayReservation.pickup_time}</p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        ) : selectedDay === 'tomorrow' && tomorrowReservation ? (
-                            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                                <Card className="border-2 border-blue-400 bg-blue-50/50 overflow-hidden text-center p-10 space-y-4">
-                                    <div className="text-4xl">🗓️</div>
-                                    <h2 className="text-xl font-black text-blue-900">Tomorrow is Sorted!</h2>
-                                    <p className="text-blue-600/80 font-medium max-w-xs mx-auto">
-                                        You've booked <span className="font-bold underline text-blue-800">{initialMeals.find(m => m.id === tomorrowReservation.meal_id)?.meal_name}</span> for tomorrow.
-                                    </p>
-                                    <Badge variant="outline" className="bg-blue-100/50 text-blue-700 border-blue-200 font-black">
-                                        Pickup: {tomorrowReservation.pickup_time}
-                                    </Badge>
-                                    <p className="text-[10px] font-black uppercase text-blue-400 tracking-tighter">Your voucher will appear here on {tomorrowReservation.date}</p>
-                                </Card>
-                            </motion.div>
-                        ) : (
-                            <section className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                                        Pick a Meal <Utensils className="h-5 w-5 text-primary" />
-                                    </h2>
-                                    <Badge variant="outline" className="text-slate-500 bg-slate-100 border-none font-bold">
-                                        Planning: {selectedDay}
-                                    </Badge>
-                                </div>
-
-                                <div className="grid gap-4">
-                                    {initialMeals
-                                        .filter(m => {
-                                            const todayMYT = getMYTDateString()
-                                            const tomorrowMYT = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
-                                            return selectedDay === 'today' ? m.date === todayMYT : m.date === tomorrowMYT
-                                        })
-                                        .map((meal) => {
-                                            const vendor = initialVendors.find(v => v.id === meal.vendor_id)
-                                            const isSoldOut = meal.remaining <= 0
-
-                                            // Improved Cutoff Logic with MYT Timezone Sync
-                                            const todayMYT = getMYTDateString()
-
-                                            // Handle Time Calculation
-                                            const getMinutes = (h: number, min: number) => h * 60 + min
-
-                                            const now = mounted ? new Date() : new Date(0)
-                                            // Current Malaysia Time (MYT) in minutes
-                                            const nowMYT = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }))
-                                            const currentMinutes = getMinutes(nowMYT.getHours(), nowMYT.getMinutes())
-
-                                            // Cutoff time in minutes
-                                            const [cutoffH, cutoffM] = meal.cutoff.split(':').map(Number)
-                                            const cutoffMinutes = getMinutes(cutoffH, cutoffM)
-
-                                            const isToday = meal.date === todayMYT
-                                            const isCutoff = isToday && currentMinutes > cutoffMinutes
-
-                                            // Only show 'Closed' for Today. Tomorrow is always open for pre-booking.
-                                            const displayStatus = isSoldOut ? 'Sold Out' : (isToday && isCutoff) ? 'Closed' : selectedDay === 'tomorrow' ? 'Pre-book Now 🗓️' : 'Reserve'
-                                            const isDisabled = isSoldOut || (isToday && isCutoff) || loading
-
-                                            // Determine pickup times based on vendor
-                                            const isBrianiHouse = ['briani', 'biryani', 'biriani'].some(term => vendor?.name.toLowerCase().includes(term));
-                                            const startHour = isBrianiHouse ? 13 : 12;
-                                            const endHour = 15;
-                                            const pickupTimes = [];
-                                            for (let h = startHour; h <= endHour; h++) {
-                                                for (let m = 0; m < 60; m += 15) {
-                                                    if (h === endHour && m > 0) break;
-                                                    pickupTimes.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-                                                }
-                                            }
-
-                                            return (
-                                                <motion.div key={meal.id} whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300 }}>
-                                                    <Card className={cn(
-                                                        "group relative overflow-hidden transition-all",
-                                                        isDisabled ? "grayscale opacity-60" : "hover:border-primary/50 cursor-pointer shadow-md hover:shadow-xl"
-                                                    )}>
-                                                        <CardHeader className="p-5 pb-2">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <Badge className="mb-2 bg-primary/10 text-primary border-none font-black text-[10px] uppercase">
-                                                                        {vendor?.name}
-                                                                    </Badge>
-                                                                    <CardTitle className="text-xl font-bold">{meal.meal_name}</CardTitle>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <span className="text-2xl font-black text-primary">{meal.credit_cost || 1}</span>
-                                                                    <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Credit{(meal.credit_cost || 1) !== 1 ? 's' : ''}</p>
-                                                                </div>
-                                                            </div>
-                                                        </CardHeader>
-
-                                                        {/* Pickup Time Selection */}
-                                                        {!isDisabled && (
-                                                            <CardContent className="p-5 pt-0 space-y-3">
-                                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Pickup Time</p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {pickupTimes.map(time => (
-                                                                        <button
-                                                                            key={time}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setSelectedPickupTimes(prev => ({ ...prev, [meal.id]: time }));
-                                                                            }}
-                                                                            className={cn(
-                                                                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2",
-                                                                                selectedPickupTimes[meal.id] === time
-                                                                                    ? "bg-primary text-white border-primary shadow-md scale-105"
-                                                                                    : "bg-slate-50 text-slate-500 border-slate-100 hover:border-primary/30"
-                                                                            )}
-                                                                        >
-                                                                            {time}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </CardContent>
-                                                        )}
-                                                        <CardFooter className="p-5 pt-0 flex justify-between items-center">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-xs font-bold text-slate-600">{meal.remaining}/{meal.limit} slots left</span>
-                                                            </div>
-                                                            <Button
-                                                                disabled={isDisabled || !selectedPickupTimes[meal.id]}
-                                                                onClick={() => handleReserve(meal.id)}
-                                                                size="sm"
-                                                                className={cn(
-                                                                    "rounded-full px-6 font-bold group-hover:scale-105 transition-all shadow-lg shadow-primary/20",
-                                                                    selectedDay === 'tomorrow' ? "bg-blue-600 hover:bg-blue-700" : ""
-                                                                )}
-                                                            >
-                                                                {!selectedPickupTimes[meal.id] && !isDisabled ? 'Choose Time' : displayStatus}
-                                                            </Button>
-                                                        </CardFooter>
-                                                    </Card>
-                                                </motion.div>
-                                            )
-                                        })}
-                                </div>
-                            </section>
-                        )}
                     </div>
 
-                    {/* History Section */}
-                    <section className="space-y-4 pt-8 border-t">
-                        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                            Your History <History className="h-5 w-5 text-slate-400" />
-                        </h2>
-                        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                            {allReservations.filter(r => r.user_id === user.id).length === 0 ? (
-                                <div className="p-8 text-center text-slate-400 italic text-sm">No reservations yet.</div>
-                            ) : (
-                                <div className="divide-y">
-                                    {allReservations
-                                        .filter(r => r.user_id === user.id)
-                                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                        .map((res) => (
-                                            <div key={res.id} className="p-4 flex items-center justify-between text-sm">
-                                                <div className="space-y-1">
-                                                    <p className="font-bold text-slate-900">{res.date}</p>
-                                                    <p className="text-xs text-slate-500 font-mono">{res.voucher} • {res.pickup_time}</p>
+                    <div className="grid gap-4">
+                        {initialMeals
+                            .filter(m => {
+                                const todayMYT = getMYTDateString()
+                                const tomorrowMYT = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
+                                return selectedDay === 'today' ? m.date === todayMYT : m.date === tomorrowMYT
+                            })
+                            .map((meal) => {
+                                const vendor = initialVendors.find(v => v.id === meal.vendor_id)
+                                const isSoldOut = meal.remaining <= 0
+
+                                // Determination of pickup times
+                                const isBrianiHouse = ['briani', 'biryani', 'biriani'].some(term => vendor?.name.toLowerCase().includes(term));
+                                const startHour = isBrianiHouse ? 13 : 12;
+                                const endHour = 15;
+                                const pickupTimes = [];
+                                for (let h = startHour; h <= endHour; h++) {
+                                    for (let m = 0; m < 60; m += 15) {
+                                        if (h === endHour && m > 0) break;
+                                        pickupTimes.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+                                    }
+                                }
+
+                                return (
+                                    <motion.div
+                                        key={meal.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                    >
+                                        <Card className="rounded-3xl border-none shadow-sm bg-white overflow-hidden group">
+                                            <div className="p-6 space-y-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase">
+                                                                {vendor?.name}
+                                                            </Badge>
+                                                        </div>
+                                                        <h4 className="text-lg font-black text-foreground group-hover:text-primary transition-colors">
+                                                            {meal.meal_name}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-xl font-black text-primary">RM{(meal.credit_cost * 6.5).toFixed(2)}</p>
+                                                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">
+                                                            {meal.credit_cost} Credit
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <Badge variant="outline" className={cn(
-                                                    "font-bold uppercase text-[10px]",
-                                                    res.status === 'redeemed' ? "bg-green-50 text-green-600 border-green-200" : "bg-blue-50 text-blue-600 border-blue-200"
-                                                )}>
-                                                    {res.status}
-                                                </Badge>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    {pickupTimes.map(time => (
+                                                        <button
+                                                            key={time}
+                                                            onClick={() => setSelectedPickupTimes(prev => ({ ...prev, [meal.id]: time }))}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-xl text-[10px] font-black transition-all border-2",
+                                                                selectedPickupTimes[meal.id] === time
+                                                                    ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
+                                                                    : "bg-muted border-transparent text-muted-foreground hover:border-primary/20"
+                                                            )}
+                                                        >
+                                                            {time}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-1.5 w-24 bg-muted rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${(meal.remaining / meal.limit) * 100}%` }}
+                                                                className="h-full bg-primary"
+                                                            />
+                                                        </div>
+                                                        <span className="text-[10px] font-black text-muted-foreground uppercase">{meal.remaining} left</span>
+                                                    </div>
+                                                    <Button
+                                                        disabled={isSoldOut || loading || !selectedPickupTimes[meal.id]}
+                                                        onClick={() => handleReserve(meal.id)}
+                                                        className="rounded-xl font-black h-10 px-6 shadow-sm shadow-primary/10"
+                                                    >
+                                                        {isSoldOut ? 'Sold Out' : 'Redeem'}
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        ))}
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                </div>
-            )
-            }
-        </div >
+                                        </Card>
+                                    </motion.div>
+                                )
+                            })}
+                    </div>
+                </section>
+
+                <div className="h-12" /> {/* Spacer */}
+            </main>
+
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-6 left-6 right-6 z-40 bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-2xl p-2 flex items-center justify-around">
+                {[
+                    { id: 'home', icon: HomeIcon, label: 'Home' },
+                    { id: 'vendors', icon: Utensils, label: 'Vendors' },
+                    { id: 'history', icon: History, label: 'History' },
+                    { id: 'profile', icon: UserIcon, label: 'Profile' },
+                ].map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                            "flex flex-col items-center gap-1 p-3 rounded-2xl transition-all relative group",
+                            activeTab === item.id ? "text-primary" : "text-muted-foreground"
+                        )}
+                    >
+                        <item.icon size={24} className={cn("transition-transform group-hover:scale-110", activeTab === item.id && "fill-primary/10")} />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">{item.label}</span>
+                        {activeTab === item.id && (
+                            <motion.div layoutId="nav-pill" className="absolute inset-0 bg-primary/5 rounded-2xl -z-10" />
+                        )}
+                    </button>
+                ))}
+            </nav>
+        </div>
     )
 }
