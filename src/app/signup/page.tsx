@@ -51,7 +51,6 @@ export default function SignupPage() {
                     .insert({
                         id: authData.user.id,
                         name: name,
-                        email: email,
                         phone: phone,
                         tapauu_id: generatedId,
                         credits: 10, // Starting credits for student
