@@ -8,6 +8,7 @@ import { Utensils, Clock, Home as HomeIcon, History, User as UserIcon, LogOut, W
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, getMYTDateString } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function Home({
     initialMeals,
@@ -29,13 +30,37 @@ export default function Home({
 
     useEffect(() => {
         setMounted(true)
-        const savedId = localStorage.getItem('tapauu_id')
-        if (savedId) {
-            handleCheckUser(savedId)
-        } else {
-            router.push('/login')
-        }
+        const initAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                // Get user by Auth ID
+                const res = await fetchProfileByAuthId(session.user.id);
+                if (res) {
+                    setUser(res);
+                    localStorage.setItem('tapauu_id', res.tapauu_id);
+                } else {
+                    router.push('/login');
+                }
+            } else {
+                const savedId = localStorage.getItem('tapauu_id');
+                if (savedId) {
+                    handleCheckUser(savedId);
+                } else {
+                    router.push('/login');
+                }
+            }
+        };
+        initAuth();
     }, [])
+
+    const fetchProfileByAuthId = async (authId: string) => {
+        const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authId)
+            .single();
+        return data as User | null;
+    }
 
     const handleCheckUser = async (id: string) => {
         setLoading(true)

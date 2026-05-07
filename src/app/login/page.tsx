@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Lock, User as UserIcon, ArrowRight, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { checkUserAction } from "../actions";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
-    const [tapauuId, setTapauuId] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -22,12 +22,27 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const res = await checkUserAction(tapauuId);
-            if (res.success && res.user) {
-                localStorage.setItem("tapauu_id", tapauuId);
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                setError(error.message);
+            } else if (data.user) {
+                // We'll store the session or just let Supabase handle it
+                // and fetch the student profile from public.users table
+                const { data: userData } = await supabase
+                    .from("users")
+                    .select("tapauu_id")
+                    .eq("id", data.user.id)
+                    .single();
+
+                if (userData) {
+                    localStorage.setItem("tapauu_id", userData.tapauu_id);
+                }
                 router.push("/");
-            } else {
-                setError(res.error || "Invalid TAPAUU ID. Please check and try again.");
+                router.refresh();
             }
         } catch (err) {
             setError("Something went wrong. Please try again.");
@@ -78,15 +93,15 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-foreground/70 ml-1">TAPAUU ID</label>
+                            <label className="text-sm font-bold text-foreground/70 ml-1">Email Address</label>
                             <div className="relative group">
-                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
-                                    type="text"
-                                    placeholder="e.g. STU101"
-                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-primary/30 focus:outline-none transition-all font-medium uppercase"
-                                    value={tapauuId}
-                                    onChange={(e) => setTapauuId(e.target.value)}
+                                    type="email"
+                                    placeholder="student@university.edu"
+                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-primary/30 focus:outline-none transition-all font-medium"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     required
                                 />
                             </div>
