@@ -58,9 +58,6 @@ export default function LoginPage() {
                             className="w-full h-auto object-contain"
                         />
                     </motion.div>
-                    <h1 className="text-4xl font-black text-foreground tracking-tight mb-2">
-                        TAPAUU
-                    </h1>
                     <p className="text-muted-foreground font-medium text-center">
                         Guaranteed savings for students.
                     </p>
