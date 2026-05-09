@@ -65,11 +65,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.6, ease: 'easeOut' }}
                 className="w-full max-w-md"
             >
-                {/* Logo */}
                 <div className="flex flex-col items-center mb-10">
-                    <div className="mb-8 w-full max-w-[280px]">
-                        <img src="/logo.jpg" alt="TAPAUU Logo" className="w-full h-auto object-contain" />
-                    </div>
                     <p className="text-muted-foreground font-medium text-center">
                         Guaranteed savings for students.
                     </p>
