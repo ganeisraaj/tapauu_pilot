@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge } from '@/components/ui-base'
-import { reserveMealAction, checkUserAction } from './actions'
+import { reserveMealAction, checkUserAction, getProfileByAuthIdAction } from './actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
 import { Utensils, Clock, Home as HomeIcon, History, User as UserIcon, LogOut, Wallet, QrCode, MapPin, ChevronRight, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -40,7 +40,6 @@ export default function Home({
                     setUser(profile);
                     localStorage.setItem('tapauu_id', profile.tapauu_id);
                 } else if (savedId) {
-                    // Fallback to legacy ID check if session profile not found
                     await handleCheckUser(savedId);
                 } else {
                     router.push('/login');
@@ -51,17 +50,29 @@ export default function Home({
                 router.push('/login');
             }
         };
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                const profile = await fetchProfileByAuthId(session.user.id);
+                if (profile) {
+                    setUser(profile);
+                    localStorage.setItem('tapauu_id', profile.tapauu_id);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+                localStorage.removeItem('tapauu_id');
+                router.push('/login');
+            }
+        });
+
         initAuth();
+        return () => subscription.unsubscribe();
     }, [])
 
     const fetchProfileByAuthId = async (authId: string) => {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', authId)
-            .single();
-        if (error) return null;
-        return data as User;
+        const res = await getProfileByAuthIdAction(authId);
+        if (res.success && res.user) return res.user;
+        return null;
     }
 
     const handleCheckUser = async (id: string) => {
@@ -99,9 +110,13 @@ export default function Home({
         setLoading(false)
     }
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        setLoading(true)
+        await supabase.auth.signOut()
         localStorage.removeItem('tapauu_id')
         router.push('/login')
+        router.refresh()
+        setLoading(false)
     }
 
     if (!user || !mounted) return (

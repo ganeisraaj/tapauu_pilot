@@ -7,6 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getProfileByAuthIdAction } from "../actions";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
@@ -30,19 +31,17 @@ export default function LoginPage() {
             if (error) {
                 setError(error.message);
             } else if (data.user) {
-                // We'll store the session or just let Supabase handle it
-                // and fetch the student profile from public.users table
-                const { data: userData } = await supabase
-                    .from("users")
-                    .select("tapauu_id")
-                    .eq("id", data.user.id)
-                    .single();
+                // Fetch profile via Server Action to bypass RLS
+                const res = await getProfileByAuthIdAction(data.user.id);
 
-                if (userData) {
-                    localStorage.setItem("tapauu_id", userData.tapauu_id);
+                if (res.success && res.user) {
+                    localStorage.setItem("tapauu_id", res.user.tapauu_id);
+                    router.push("/");
+                    router.refresh();
+                } else {
+                    // Profile not found - maybe they didn't finish signup?
+                    setError(res.error || "User profile not found. Please ensure your signup was complete.");
                 }
-                router.push("/");
-                router.refresh();
             }
         } catch (err) {
             setError("Something went wrong. Please try again.");

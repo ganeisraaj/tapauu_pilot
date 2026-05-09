@@ -46,6 +46,22 @@ export async function checkUserAction(tapauuId: string) {
     return { success: true, user }
 }
 
+export async function getProfileByAuthIdAction(authId: string) {
+    try {
+        const { supabaseAdmin } = await import('@/lib/supabase-admin');
+        const { data, error } = await supabaseAdmin
+            .from('users')
+            .select('*')
+            .eq('id', authId)
+            .single();
+
+        if (error) throw error;
+        return { success: true, user: data }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
 export async function getTodayDataAction() {
     return await getDBData()
 }
