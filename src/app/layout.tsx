@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sora } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import Header from "@/components/Header";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -25,7 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(sora.variable, "font-sans min-h-screen flex flex-col bg-background selection:bg-primary/20")} suppressHydrationWarning>
-        {children}
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { reserveMealAction, checkUserAction } from './actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
 import { Utensils, Clock, CheckCircle, History, User as UserIcon, LogOut, ArrowRight, Wallet } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { cn, getMYTDateString } from '@/lib/utils'
 
 export default function Home({
@@ -110,7 +111,7 @@ export default function Home({
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <Card className="border-2 border-primary/20 bg-white/50 backdrop-blur">
                         <CardHeader>
-                            <CardTitle>Pilot Access</CardTitle>
+                            <CardTitle>Member Access</CardTitle>
                             <CardDescription>Enter your TAPAUU ID to view today's meals.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">

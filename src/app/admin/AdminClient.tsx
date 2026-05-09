@@ -44,7 +44,7 @@ export default function AdminDashboard({
         // Always require passcode — no persistent session
     }, [])
 
-    const ADMIN_PASSCODE = "tapauu-pilot" // Simple passcode for pilot
+    const ADMIN_PASSCODE = "tapauu-pilot" // Keep same value but rename UI context
 
     const handleAuth = (e: React.FormEvent) => {
         e.preventDefault()
@@ -69,7 +69,7 @@ export default function AdminDashboard({
                             <Utensils className="h-8 w-8 text-primary" />
                         </div>
                         <h1 className="text-3xl font-black text-white tracking-tight">TAPAUU ADMIN</h1>
-                        <p className="text-slate-400 font-medium">Restricted Access • Pilot Phase</p>
+                        <p className="text-slate-400 font-medium">Restricted Access • Management Console</p>
                     </div>
 
                     <Card className="border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl overflow-hidden">
@@ -267,7 +267,7 @@ export default function AdminDashboard({
                 <div className="flex items-center gap-4">
                     <div className="text-right">
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
-                        <p className="text-slate-500 font-medium">Control center for TAPAUU Pilot Program.</p>
+                        <p className="text-slate-500 font-medium">Control center for TAPAUU Network.</p>
                     </div>
                     <Button variant="ghost" size="icon" className="hover:text-red-500" onClick={() => {
                         localStorage.removeItem('tapauu_admin_auth')
@@ -303,7 +303,7 @@ export default function AdminDashboard({
                     <motion.div key="stats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                         <div className="grid md:grid-cols-4 gap-6">
                             <StatCard title="Total Volunteers" value={stats.totalUsers} sub="15-20 Target" icon={Users} color="blue" />
-                            <StatCard title="Bookings Today" value={stats.totalReservations} sub="Total pilot period" icon={TrendingUp} color="orange" />
+                            <StatCard title="Bookings Today" value={stats.totalReservations} sub="Cumulative" icon={TrendingUp} color="orange" />
                             <StatCard title="Meals Redeemed" value={stats.totalRedeemed} sub="Delivered to users" icon={Check} color="green" />
                             <StatCard title="No-Shows" value={stats.noShows} sub="Reserved but not used" icon={AlertCircle} color="red" />
                         </div>
@@ -317,7 +317,7 @@ export default function AdminDashboard({
                                         </div>
                                         Quick Actions
                                     </CardTitle>
-                                    <CardDescription>Main management controls for the pilot.</CardDescription>
+                                    <CardDescription>Main management controls for the platform.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-2 gap-4">
                                     <Button onClick={() => { setActiveTab('users'); setIsAddingVolunteer(true); }} className="h-16 flex flex-col gap-1 font-black shadow-lg shadow-primary/20">
@@ -334,7 +334,7 @@ export default function AdminDashboard({
                             <Card className="border-2 border-primary/20">
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center gap-2">
-                                        <ListChecks className="h-5 w-5 text-primary" /> Vendor Pilot Links
+                                        <ListChecks className="h-5 w-5 text-primary" /> Vendor Links
                                     </CardTitle>
                                     <CardDescription>Share these secret links with each individual food vendor.</CardDescription>
                                 </CardHeader>
@@ -368,7 +368,7 @@ export default function AdminDashboard({
                             <Card className="border-2 border-primary ring-4 ring-primary/10">
                                 <CardHeader>
                                     <CardTitle>Register New Volunteer</CardTitle>
-                                    <CardDescription>Add a new student to the pilot program.</CardDescription>
+                                    <CardDescription>Add a new student to the system.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <form onSubmit={handleCreateVolunteer} className="grid md:grid-cols-5 gap-4">
@@ -777,4 +777,3 @@ function StatCard({ title, value, sub, icon: Icon, color }: any) {
         </Card>
     )
 }
-

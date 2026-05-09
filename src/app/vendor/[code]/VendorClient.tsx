@@ -212,7 +212,7 @@ export default function VendorDashboard({
                 </section>
 
                 <footer className="text-center space-y-4 pt-12 opacity-50">
-                    <p className="text-xs font-bold text-slate-400">© 2026 TAPAUU Pilot Project. Built for speed.</p>
+                    <p className="text-xs font-bold text-slate-400">© 2026 TAPAUU Network. Built for speed.</p>
                 </footer>
             </main>
         </div>
