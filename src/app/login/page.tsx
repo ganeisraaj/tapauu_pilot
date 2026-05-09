@@ -1,96 +1,81 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui-base";
-import { getProfileByAuthIdAction, checkUserAction } from "../actions";
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getProfileByAuthIdAction } from '../actions'
 
 export default function LoginPage() {
-    const [showPassword, setShowPassword] = useState(false);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [signupSuccess, setSignupSuccess] = useState(false);
-    const router = useRouter();
+    const [showPassword, setShowPassword] = useState(false)
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [signupSuccess, setSignupSuccess] = useState(false)
+    const router = useRouter()
 
     useEffect(() => {
-        // Simple check for success query param
-        if (typeof window !== 'undefined' && window.location.search.includes('signup=success')) {
-            setSignupSuccess(true);
+        if (window.location.search.includes('signup=success')) {
+            setSignupSuccess(true)
         }
-    }, []);
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError("");
+        e.preventDefault()
+        setIsLoading(true)
+        setError('')
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-            if (error) {
-                setError(error.message);
-            } else if (data.user) {
-                // Fetch profile via Server Action to bypass RLS
-                const res = await getProfileByAuthIdAction(
-                    data.user.id,
-                    data.user.email,
-                    data.user.user_metadata
-                );
+            if (authError) {
+                setError(authError.message)
+                return
+            }
+
+            if (data.user) {
+                // Get the user's TAPAUU profile to retrieve their tapauu_id
+                const res = await getProfileByAuthIdAction(data.user.id, data.user.email, data.user.user_metadata)
 
                 if (res.success && res.user) {
-                    localStorage.setItem("tapauu_id", res.user.tapauu_id);
-                    router.push("/");
-                    router.refresh();
+                    // Store tapauu_id in localStorage — this is all the home page needs
+                    localStorage.setItem('tapauu_id', res.user.tapauu_id)
+                    router.push('/')
+                    router.refresh()
                 } else {
-                    // Profile not found - maybe they didn't finish signup?
-                    setError(res.error || "User profile not found. Please ensure your signup was complete.");
+                    setError(res.error || 'Account found but profile is missing. Please contact admin.')
                 }
             }
         } catch (err) {
-            setError("Something went wrong. Please try again.");
+            setError('Something went wrong. Please try again.')
         } finally {
-            setIsLoading(false);
+            setIsLoading(false)
         }
-    };
+    }
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
                 className="w-full max-w-md"
             >
-                {/* Logo & Tagline */}
+                {/* Logo */}
                 <div className="flex flex-col items-center mb-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mb-8 w-full max-w-[280px]"
-                    >
-                        <img
-                            src="/logo.jpg"
-                            alt="TAPAUU Logo"
-                            className="w-full h-auto object-contain"
-                        />
-                    </motion.div>
+                    <div className="mb-8 w-full max-w-[280px]">
+                        <img src="/logo.jpg" alt="TAPAUU Logo" className="w-full h-auto object-contain" />
+                    </div>
                     <p className="text-muted-foreground font-medium text-center">
                         Guaranteed savings for students.
                     </p>
                 </div>
 
-                {/* Login Form */}
+                {/* Form Card */}
                 <div className="glass p-8 rounded-3xl shadow-xl shadow-primary/5 border border-white/50 bg-white/40 backdrop-blur-xl">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {signupSuccess && !error && (
@@ -100,7 +85,7 @@ export default function LoginPage() {
                                 className="flex items-center gap-2 p-4 rounded-2xl bg-green-50 text-green-700 text-sm font-bold border border-green-100"
                             >
                                 <CheckCircle2 size={18} />
-                                Signup successful! Please log in below.
+                                Account created! Log in below.
                             </motion.div>
                         )}
 
@@ -135,7 +120,7 @@ export default function LoginPage() {
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <input
-                                    type={showPassword ? "text" : "password"}
+                                    type={showPassword ? 'text' : 'password'}
                                     placeholder="••••••••"
                                     className="w-full pl-12 pr-12 py-4 rounded-2xl border-2 border-transparent bg-white shadow-sm focus:border-primary/30 focus:outline-none transition-all font-medium"
                                     value={password}
@@ -152,85 +137,33 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end">
-                            <Link
-                                href="/forgot-password"
-                                className="text-sm font-bold text-primary hover:opacity-80 transition-opacity"
-                            >
-                                Forgot password?
-                            </Link>
-                        </div>
-
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            type="submit"
                             disabled={isLoading}
                             className={cn(
-                                "w-full py-4 rounded-2xl bg-primary text-white font-black text-lg shadow-lg shadow-primary/20",
-                                "flex items-center justify-center gap-2 transition-all hover:bg-primary/90",
-                                isLoading && "opacity-70 cursor-not-allowed"
+                                'w-full py-4 rounded-2xl bg-primary text-white font-black text-lg shadow-lg shadow-primary/20',
+                                'flex items-center justify-center gap-2 transition-all hover:bg-primary/90',
+                                isLoading && 'opacity-70 cursor-not-allowed'
                             )}
                         >
                             {isLoading ? (
-                                <div className="h-6 w-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="h-6 w-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                                <>
-                                    Log In
-                                    <ArrowRight size={20} />
-                                </>
+                                <>Log In <ArrowRight size={20} /></>
                             )}
                         </motion.button>
-
-                        <div className="relative py-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-muted-foreground font-black tracking-widest">Pilot Phase Legacy Access</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-3">
-                            <p className="text-[10px] font-black text-primary/60 uppercase text-center tracking-widest leading-none">
-                                Have an existing pilot ID?
-                            </p>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={async () => {
-                                    const id = window.prompt("Enter your TAPAUU ID (e.g. STU123):");
-                                    if (id) {
-                                        setIsLoading(true);
-                                        const res = await checkUserAction(id.toUpperCase());
-                                        if (res.success && res.user) {
-                                            localStorage.setItem("tapauu_id", res.user.tapauu_id);
-                                            router.push("/");
-                                            router.refresh();
-                                        } else {
-                                            alert("Invalid TAPAUU ID or account disabled.");
-                                        }
-                                        setIsLoading(false);
-                                    }
-                                }}
-                                className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black hover:bg-primary/10 bg-white shadow-sm transition-all"
-                            >
-                                Continue with TAPAUU ID
-                            </Button>
-                        </div>
                     </form>
                 </div>
 
-                {/* Footer Link */}
                 <p className="mt-8 text-center text-muted-foreground font-medium">
-                    Don&apos;t have an account?{" "}
-                    <Link
-                        href="/signup"
-                        className="text-primary font-black hover:underline underline-offset-4"
-                    >
+                    Don&apos;t have an account?{' '}
+                    <Link href="/signup" className="text-primary font-black hover:underline underline-offset-4">
                         Sign up
                     </Link>
                 </p>
             </motion.div>
         </div>
-    );
+    )
 }

@@ -26,7 +26,6 @@ export async function reserveMealAction(formData: FormData) {
     const mealId = formData.get('mealId') as string
     const pickupTime = formData.get('pickupTime') as string
 
-
     if (!tapauuId || !mealId || !pickupTime) {
         return { error: 'Missing required information' }
     }
@@ -46,54 +45,59 @@ export async function checkUserAction(tapauuId: string) {
     return { success: true, user }
 }
 
+/**
+ * Used after email/password signup to write the profile to our users table.
+ * Called from signup/page.tsx.
+ */
+export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string }) {
+    try {
+        const { supabaseAdmin } = await import('@/lib/supabase-admin');
+        const { error } = await supabaseAdmin
+            .from('users')
+            .upsert({
+                ...profile,
+                id: authId,
+                credits: 0, // Users start with 0 credits — admin sets manually
+                active: true
+            });
+
+        if (error) throw error;
+
+        revalidatePath('/')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
+/**
+ * Used on login to look up the user profile from auth UUID.
+ * Returns the tapauu_id so it can be stored in localStorage.
+ */
 export async function getProfileByAuthIdAction(authId: string, email?: string, metadata?: any) {
     try {
         const { supabaseAdmin } = await import('@/lib/supabase-admin');
 
-        // 1. Try to find by UUID first
-        let { data, error } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
             .from('users')
             .select('*')
             .eq('id', authId)
             .maybeSingle();
 
         if (error) {
-            console.error('Error fetching profile by ID:', error);
-            // Don't throw, try to continue
+            console.error('getProfileByAuthIdAction error:', error);
         }
 
-        // 2. If not found by ID, maybe they were migrated or signed up with email?
-        // Let's check if there's a record with the same name/phone fallback? 
-        // Actually, let's just ensure we create one if it truly doesn't exist.
-
-        if (!data) {
-            const generatedId = "STU" + Math.random().toString(36).substring(2, 7).toUpperCase();
-
-            // Fallback name from email if metadata is missing
-            const fallbackName = email ? email.split('@')[0] : 'New Student';
-            const name = metadata?.full_name || fallbackName;
-
-            const { data: newUser, error: createError } = await supabaseAdmin
-                .from('users')
-                .insert({
-                    id: authId,
-                    name: name,
-                    phone: metadata?.phone || '',
-                    tapauu_id: generatedId,
-                    credits: 0, // Always 0 for new pilot users
-                    active: true
-                })
-                .select()
-                .maybeSingle();
-
-            if (createError) {
-                console.error('Error creating profile lazily:', createError);
-                throw new Error('Could not create user profile: ' + createError.message);
-            }
-            data = newUser;
+        // If user exists in our DB, return them
+        if (data) {
+            return { success: true, user: data }
         }
 
-        return { success: true, user: data }
+        // If not found — this means auth exists but no profile row yet.
+        // This shouldn't happen with the new signup flow (syncProfileAfterSignup),
+        // but as a safety net, return an error so the login page can show a helpful message.
+        return { error: 'User profile not found. Please complete signup or contact admin.' }
+
     } catch (error: any) {
         return { error: error.message }
     }
@@ -162,27 +166,6 @@ export async function createUserAction(user: Partial<User>) {
     try {
         await createUser(user)
         revalidatePath('/admin')
-        return { success: true }
-    } catch (error: any) {
-        return { error: error.message }
-    }
-}
-
-export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string }) {
-    try {
-        const { supabaseAdmin } = await import('@/lib/supabase-admin');
-        const { error } = await supabaseAdmin
-            .from('users')
-            .upsert({
-                ...profile,
-                id: authId,
-                credits: 0, // Users start with 0 credits
-                active: true
-            });
-
-        if (error) throw error;
-
-        revalidatePath('/')
         return { success: true }
     } catch (error: any) {
         return { error: error.message }
