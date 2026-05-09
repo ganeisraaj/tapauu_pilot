@@ -60,14 +60,18 @@ export async function getProfileByAuthIdAction(authId: string, email?: string, m
         if (error) throw error;
 
         // 2. If not found, try to recover/create from metadata (Lazy creation)
-        if (!data && metadata) {
-            const generatedId = "STU-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+        if (!data && (email || metadata)) {
+            // Check if a user with this email (if stored in metadata/database) already exists? 
+            // In the pilot, we didn't have email in the users table, but let's assume tapauu_id is the key.
+
+            const generatedId = "STU" + Math.random().toString(36).substring(2, 7).toUpperCase();
+
             const { data: newUser, error: createError } = await supabaseAdmin
                 .from('users')
                 .insert({
                     id: authId,
-                    name: metadata.full_name || email?.split('@')[0] || 'Student',
-                    phone: metadata.phone || '',
+                    name: metadata?.full_name || email?.split('@')[0] || 'Student',
+                    phone: metadata?.phone || '',
                     tapauu_id: generatedId,
                     credits: 10,
                     active: true

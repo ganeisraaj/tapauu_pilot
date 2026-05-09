@@ -7,7 +7,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getProfileByAuthIdAction } from "../actions";
+import { Button } from "@/components/ui-base";
+import { getProfileByAuthIdAction, checkUserAction } from "../actions";
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
@@ -160,6 +161,38 @@ export default function LoginPage() {
                                 </>
                             )}
                         </motion.button>
+
+                        <div className="relative py-4">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-200"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-white px-2 text-muted-foreground font-bold">Or use pilot access</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={async () => {
+                                const id = window.prompt("Enter your TAPAUU ID (e.g. STU123):");
+                                if (id) {
+                                    setIsLoading(true);
+                                    const res = await checkUserAction(id.toUpperCase());
+                                    if (res.success && res.user) {
+                                        localStorage.setItem("tapauu_id", res.user.tapauu_id);
+                                        router.push("/");
+                                        router.refresh();
+                                    } else {
+                                        alert("Invalid TAPAUU ID");
+                                    }
+                                    setIsLoading(false);
+                                }
+                            }}
+                            className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black hover:bg-primary/5 shadow-sm"
+                        >
+                            Log in with TAPAUU ID
+                        </Button>
                     </form>
                 </div>
 
