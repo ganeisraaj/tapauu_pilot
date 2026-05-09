@@ -8,30 +8,28 @@ import { Settings } from 'lucide-react'
 
 export default function Header() {
     return (
-        <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-100 shadow-sm">
-            <div className="container max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-                {/* Left Side (Desktop-only Spacer for centering) */}
-                <div className="w-24 hidden md:block" />
+        <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-100 shadow-sm flex justify-center">
+            <div className="container max-w-6xl mx-auto px-4 h-20 flex items-center justify-between relative">
+                {/* Logo centered absolutely */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <Link href="/" className="hover:opacity-80 transition-opacity">
+                        <img
+                            src="/favicon.svg"
+                            alt="TAPAUU"
+                            className="h-14 w-auto"
+                        />
+                    </Link>
+                </div>
 
-                {/* Centered Logo & Branding */}
-                <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                    <img
-                        src="/logo.jpg"
-                        alt="TAPAUU"
-                        className="h-9 w-auto object-contain"
-                    />
-                    <span className="font-black text-2xl tracking-tighter text-[#FF6B35]">TAPAUU</span>
-                </Link>
-
-                {/* Right Side Options */}
-                <nav className="flex items-center">
+                {/* Right side Actions */}
+                <div className="ml-auto">
                     <Link href="/admin">
                         <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-primary gap-2">
                             <Settings className="w-4 h-4" />
                             <span className="hidden sm:inline">Admin</span>
                         </Button>
                     </Link>
-                </nav>
+                </div>
             </div>
         </header>
     )
