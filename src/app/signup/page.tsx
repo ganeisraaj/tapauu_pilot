@@ -54,8 +54,7 @@ export default function SignupPage() {
                 if (syncRes.error) {
                     setError("Profile creation failed: " + syncRes.error);
                 } else {
-                    router.push("/login?signup=success");
-                    router.refresh();
+                    window.location.href = "/login?signup=success";
                 }
             }
         } catch (err) {

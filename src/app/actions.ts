@@ -51,6 +51,7 @@ export async function checkUserAction(tapauuId: string) {
  */
 export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string }) {
     try {
+        console.log('Syncing profile for:', authId, profile.tapauu_id);
         const { supabaseAdmin } = await import('@/lib/supabase-admin');
         const { error } = await supabaseAdmin
             .from('users')
@@ -83,6 +84,8 @@ export async function getProfileByAuthIdAction(authId: string, email?: string, m
             .select('*')
             .eq('id', authId)
             .maybeSingle();
+
+        console.log(`Lookup for ${authId}: ${data ? 'Found' : 'Not Found'}`);
 
         if (error) {
             console.error('getProfileByAuthIdAction error:', error);

@@ -38,15 +38,15 @@ export default function LoginPage() {
             }
 
             if (data.user) {
-                // Get the user's TAPAUU profile to retrieve their tapauu_id
+                console.log('Auth success, fetching profile for:', data.user.id);
                 const res = await getProfileByAuthIdAction(data.user.id, data.user.email, data.user.user_metadata)
 
                 if (res.success && res.user) {
-                    // Store tapauu_id in localStorage — this is all the home page needs
+                    console.log('Profile found, redirecting...', res.user.tapauu_id);
                     localStorage.setItem('tapauu_id', res.user.tapauu_id)
-                    router.push('/')
-                    router.refresh()
+                    window.location.href = '/';
                 } else {
+                    console.error('Profile fetch failed:', res.error);
                     setError(res.error || 'Account found but profile is missing. Please contact admin.')
                 }
             }
