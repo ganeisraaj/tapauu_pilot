@@ -49,39 +49,6 @@ export default function VendorDashboard({
 
     return (
         <div className="flex flex-col min-h-screen bg-[#FDFDFD] font-sans">
-            {/* Header */}
-            <header className="bg-white border-b border-slate-100 px-6 h-20 flex items-center justify-between sticky top-0 z-50 flex justify-center">
-                <div className="container max-w-6xl mx-auto flex items-center justify-between relative h-full">
-                    {/* Logo Centered */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                        <img
-                            src="/favicon.svg"
-                            alt="TAPAUU"
-                            className="h-14 w-auto cursor-pointer"
-                            onClick={() => window.location.href = '/'}
-                        />
-                    </div>
-
-                    {/* Spacer for centering */}
-                    <div className="flex-1 hidden md:block" />
-
-                    <nav className="flex items-center gap-6 ml-auto">
-                        <button
-                            onClick={() => window.location.href = '/'}
-                            className="text-xs font-black tracking-widest uppercase text-slate-400 hover:text-primary transition-colors"
-                        >
-                            HOME
-                        </button>
-                        <button
-                            onClick={() => window.location.href = '/admin'}
-                            className="text-xs font-black tracking-widest uppercase text-slate-400 hover:text-primary transition-colors"
-                        >
-                            ADMIN
-                        </button>
-                    </nav>
-                </div>
-            </header>
-
             <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 space-y-8 pb-32">
                 {/* Vendor Header */}
                 <div className="space-y-4">
