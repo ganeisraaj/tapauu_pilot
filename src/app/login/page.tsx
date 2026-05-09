@@ -32,7 +32,11 @@ export default function LoginPage() {
                 setError(error.message);
             } else if (data.user) {
                 // Fetch profile via Server Action to bypass RLS
-                const res = await getProfileByAuthIdAction(data.user.id);
+                const res = await getProfileByAuthIdAction(
+                    data.user.id,
+                    data.user.email,
+                    data.user.user_metadata
+                );
 
                 if (res.success && res.user) {
                     localStorage.setItem("tapauu_id", res.user.tapauu_id);

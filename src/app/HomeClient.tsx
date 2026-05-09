@@ -35,7 +35,7 @@ export default function Home({
             const savedId = localStorage.getItem('tapauu_id');
 
             if (session?.user) {
-                const profile = await fetchProfileByAuthId(session.user.id);
+                const profile = await fetchProfileByAuthId(session.user.id, session.user.email, session.user.user_metadata);
                 if (profile) {
                     setUser(profile);
                     localStorage.setItem('tapauu_id', profile.tapauu_id);
@@ -53,7 +53,7 @@ export default function Home({
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session) {
-                const profile = await fetchProfileByAuthId(session.user.id);
+                const profile = await fetchProfileByAuthId(session.user.id, session.user.email, session.user.user_metadata);
                 if (profile) {
                     setUser(profile);
                     localStorage.setItem('tapauu_id', profile.tapauu_id);
@@ -69,8 +69,8 @@ export default function Home({
         return () => subscription.unsubscribe();
     }, [])
 
-    const fetchProfileByAuthId = async (authId: string) => {
-        const res = await getProfileByAuthIdAction(authId);
+    const fetchProfileByAuthId = async (authId: string, email?: string, metadata?: any) => {
+        const res = await getProfileByAuthIdAction(authId, email, metadata);
         if (res.success && res.user) return res.user;
         return null;
     }

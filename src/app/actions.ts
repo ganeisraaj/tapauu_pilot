@@ -46,16 +46,39 @@ export async function checkUserAction(tapauuId: string) {
     return { success: true, user }
 }
 
-export async function getProfileByAuthIdAction(authId: string) {
+export async function getProfileByAuthIdAction(authId: string, email?: string, metadata?: any) {
     try {
         const { supabaseAdmin } = await import('@/lib/supabase-admin');
-        const { data, error } = await supabaseAdmin
+
+        // 1. Try to find by UUID
+        let { data, error } = await supabaseAdmin
             .from('users')
             .select('*')
             .eq('id', authId)
             .maybeSingle();
 
         if (error) throw error;
+
+        // 2. If not found, try to recover/create from metadata (Lazy creation)
+        if (!data && metadata) {
+            const generatedId = "STU-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+            const { data: newUser, error: createError } = await supabaseAdmin
+                .from('users')
+                .insert({
+                    id: authId,
+                    name: metadata.full_name || email?.split('@')[0] || 'Student',
+                    phone: metadata.phone || '',
+                    tapauu_id: generatedId,
+                    credits: 10,
+                    active: true
+                })
+                .select()
+                .maybeSingle();
+
+            if (createError) throw createError;
+            data = newUser;
+        }
+
         return { success: true, user: data }
     } catch (error: any) {
         return { error: error.message }
