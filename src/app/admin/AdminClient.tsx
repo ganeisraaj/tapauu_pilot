@@ -29,9 +29,9 @@ export default function AdminDashboard({
     const [mounted, setMounted] = useState(false)
     const [editingMeal, setEditingMeal] = useState<string | null>(null)
     const [addingToVendor, setAddingToVendor] = useState<string | null>(null)
-    const [isAddingVolunteer, setIsAddingVolunteer] = useState(false)
+    const [isAddingUser, setIsAddingUser] = useState(false)
     const [isAddingVendor, setIsAddingVendor] = useState(false)
-    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: '0' })
+    const [newUser, setNewUser] = useState({ name: '', tapauu_id: '', phone: '', credits: '0' })
     const [newVendor, setNewVendor] = useState({ name: '', code: '' })
     const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: '20', credit_cost: '1' })
     const [selectedDate, setSelectedDate] = useState<string>('')
@@ -107,7 +107,7 @@ export default function AdminDashboard({
                         onClick={() => window.location.href = '/'}
                         className="w-full mt-6 text-slate-500 hover:text-white text-sm font-bold transition-colors"
                     >
-                        ← Return to Volunteer Site
+                        ← Return to User Site
                     </button>
                 </motion.div>
             </div>
@@ -119,7 +119,7 @@ export default function AdminDashboard({
         totalReservations: reservations.length,
         totalRedeemed: reservations.filter(r => r.status === 'redeemed').length,
         noShows: reservations.filter(r => r.status === 'reserved').length,
-        activeVolunteerPercentage: Math.round((users.filter(u => u.active).length / users.length) * 100)
+        activeUserPercentage: Math.round((users.filter(u => u.active).length / users.length) * 100)
     }
 
     const handleUpdateStatus = async (userId: string, active: boolean) => {
@@ -196,16 +196,16 @@ export default function AdminDashboard({
         setEditForm({ meal_name: '', cutoff: '11:05', limit: '20', credit_cost: '1' })
     }
 
-    const handleCreateVolunteer = async (e: React.FormEvent) => {
+    const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         const res = await createUserAction({
-            ...newVolunteer,
-            credits: parseFloat(newVolunteer.credits) || 0
+            ...newUser,
+            credits: parseFloat(newUser.credits) || 0
         })
         if (res.success) {
-            setIsAddingVolunteer(false)
-            setNewVolunteer({ name: '', tapauu_id: '', phone: '', credits: '10' })
+            setIsAddingUser(false)
+            setNewUser({ name: '', tapauu_id: '', phone: '', credits: '10' })
             router.refresh()
         } else {
             alert((res as any).error)
@@ -228,7 +228,7 @@ export default function AdminDashboard({
     }
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm('Are you sure? This volunteer will be permanently removed.')) return
+        if (!confirm('Are you sure? This user will be permanently removed.')) return
         setLoading(true)
         const res = await deleteUserAction(userId)
         if (res.success) router.refresh()
@@ -279,7 +279,7 @@ export default function AdminDashboard({
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                     {[
                         { id: 'stats', label: 'Stats', icon: LayoutDashboard },
-                        { id: 'users', label: 'Volunteers', icon: Users },
+                        { id: 'users', label: 'Users', icon: Users },
                         { id: 'meals', label: 'Daily Meals', icon: Settings },
                         { id: 'reservations', label: 'Log', icon: ListChecks }
                     ].map((tab) => (
@@ -302,7 +302,7 @@ export default function AdminDashboard({
                 {activeTab === 'stats' && (
                     <motion.div key="stats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                         <div className="grid md:grid-cols-4 gap-6">
-                            <StatCard title="Total Volunteers" value={stats.totalUsers} sub="15-20 Target" icon={Users} color="blue" />
+                            <StatCard title="Total Users" value={stats.totalUsers} sub="15-20 Target" icon={Users} color="blue" />
                             <StatCard title="Bookings Today" value={stats.totalReservations} sub="Cumulative" icon={TrendingUp} color="orange" />
                             <StatCard title="Meals Redeemed" value={stats.totalRedeemed} sub="Delivered to users" icon={Check} color="green" />
                             <StatCard title="No-Shows" value={stats.noShows} sub="Reserved but not used" icon={AlertCircle} color="red" />
@@ -320,9 +320,9 @@ export default function AdminDashboard({
                                     <CardDescription>Main management controls for the platform.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-2 gap-4">
-                                    <Button onClick={() => { setActiveTab('users'); setIsAddingVolunteer(true); }} className="h-16 flex flex-col gap-1 font-black shadow-lg shadow-primary/20">
+                                    <Button onClick={() => { setActiveTab('users'); setIsAddingUser(true); }} className="h-16 flex flex-col gap-1 font-black shadow-lg shadow-primary/20">
                                         <UserPlus className="h-5 w-5" />
-                                        Add Volunteer
+                                        Add User
                                     </Button>
                                     <Button variant="outline" onClick={() => setIsAddingVendor(true)} className="h-16 flex flex-col gap-1 font-black border-2 border-slate-900">
                                         <Store className="h-5 w-5" />
@@ -364,33 +364,33 @@ export default function AdminDashboard({
 
                 {activeTab === 'users' && (
                     <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                        {isAddingVolunteer && (
+                        {isAddingUser && (
                             <Card className="border-2 border-primary ring-4 ring-primary/10">
                                 <CardHeader>
-                                    <CardTitle>Register New Volunteer</CardTitle>
+                                    <CardTitle>Register New User</CardTitle>
                                     <CardDescription>Add a new student to the system.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <form onSubmit={handleCreateVolunteer} className="grid md:grid-cols-5 gap-4">
+                                    <form onSubmit={handleCreateUser} className="grid md:grid-cols-5 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">TAPAUU ID</label>
-                                            <Input placeholder="STU999" value={newVolunteer.tapauu_id} onChange={e => setNewVolunteer({ ...newVolunteer, tapauu_id: e.target.value.toUpperCase() })} required />
+                                            <Input placeholder="STU999" value={newUser.tapauu_id} onChange={e => setNewUser({ ...newUser, tapauu_id: e.target.value.toUpperCase() })} required />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">Full Name</label>
-                                            <Input placeholder="John Doe" value={newVolunteer.name} onChange={e => setNewVolunteer({ ...newVolunteer, name: e.target.value })} required />
+                                            <Input placeholder="John Doe" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} required />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">Phone</label>
-                                            <Input placeholder="012-3456789" value={newVolunteer.phone} onChange={e => setNewVolunteer({ ...newVolunteer, phone: e.target.value })} />
+                                            <Input placeholder="012-3456789" value={newUser.phone} onChange={e => setNewUser({ ...newUser, phone: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
-                                            <Input type="number" step="any" value={newVolunteer.credits} onChange={e => setNewVolunteer({ ...newVolunteer, credits: e.target.value })} />
+                                            <Input type="number" step="any" value={newUser.credits} onChange={e => setNewUser({ ...newUser, credits: e.target.value })} />
                                         </div>
                                         <div className="flex items-end gap-2">
-                                            <Button type="submit" className="flex-1 font-black" disabled={loading}>Save Volunteer</Button>
-                                            <Button type="button" variant="ghost" onClick={() => setIsAddingVolunteer(false)}>Cancel</Button>
+                                            <Button type="submit" className="flex-1 font-black" disabled={loading}>Save User</Button>
+                                            <Button type="button" variant="ghost" onClick={() => setIsAddingUser(false)}>Cancel</Button>
                                         </div>
                                     </form>
                                 </CardContent>
@@ -398,7 +398,7 @@ export default function AdminDashboard({
                         )}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-lg">Volunteer Management</CardTitle>
+                                <CardTitle className="text-lg">User Management</CardTitle>
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                     <Input
@@ -414,7 +414,7 @@ export default function AdminDashboard({
                                     <table className="w-full text-sm text-left">
                                         <thead>
                                             <tr className="bg-slate-50 border-b text-slate-500 font-bold">
-                                                <th className="p-4">Volunteer</th>
+                                                <th className="p-4">User</th>
                                                 <th className="p-4">Credits</th>
                                                 <th className="p-4">Status</th>
                                                 <th className="p-4 text-right">Actions</th>
@@ -663,7 +663,7 @@ export default function AdminDashboard({
                                         <thead>
                                             <tr className="bg-slate-50 border-b text-slate-500 font-bold">
                                                 <th className="p-4">Voucher</th>
-                                                <th className="p-4">Volunteer</th>
+                                                <th className="p-4">User</th>
                                                 <th className="p-4">Vendor</th>
                                                 <th className="p-4">Status</th>
                                                 <th className="p-4 text-right">Redeem</th>
