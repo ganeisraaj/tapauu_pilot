@@ -50,36 +50,46 @@ export async function getProfileByAuthIdAction(authId: string, email?: string, m
     try {
         const { supabaseAdmin } = await import('@/lib/supabase-admin');
 
-        // 1. Try to find by UUID
+        // 1. Try to find by UUID first
         let { data, error } = await supabaseAdmin
             .from('users')
             .select('*')
             .eq('id', authId)
             .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching profile by ID:', error);
+            // Don't throw, try to continue
+        }
 
-        // 2. If not found, try to recover/create from metadata (Lazy creation)
-        if (!data && (email || metadata)) {
-            // Check if a user with this email (if stored in metadata/database) already exists? 
-            // In the pilot, we didn't have email in the users table, but let's assume tapauu_id is the key.
+        // 2. If not found by ID, maybe they were migrated or signed up with email?
+        // Let's check if there's a record with the same name/phone fallback? 
+        // Actually, let's just ensure we create one if it truly doesn't exist.
 
+        if (!data) {
             const generatedId = "STU" + Math.random().toString(36).substring(2, 7).toUpperCase();
+
+            // Fallback name from email if metadata is missing
+            const fallbackName = email ? email.split('@')[0] : 'New Student';
+            const name = metadata?.full_name || fallbackName;
 
             const { data: newUser, error: createError } = await supabaseAdmin
                 .from('users')
                 .insert({
                     id: authId,
-                    name: metadata?.full_name || email?.split('@')[0] || 'Student',
+                    name: name,
                     phone: metadata?.phone || '',
                     tapauu_id: generatedId,
-                    credits: 10,
+                    credits: 0, // Always 0 for new pilot users
                     active: true
                 })
                 .select()
                 .maybeSingle();
 
-            if (createError) throw createError;
+            if (createError) {
+                console.error('Error creating profile lazily:', createError);
+                throw new Error('Could not create user profile: ' + createError.message);
+            }
             data = newUser;
         }
 
@@ -166,7 +176,7 @@ export async function syncProfileAfterSignup(authId: string, profile: { name: st
             .upsert({
                 ...profile,
                 id: authId,
-                credits: 10,
+                credits: 0, // Users start with 0 credits
                 active: true
             });
 

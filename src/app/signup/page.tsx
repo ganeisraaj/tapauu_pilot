@@ -44,7 +44,7 @@ export default function SignupPage() {
 
             if (authData.user) {
                 // 2. Create profile via Server Action to bypass RLS
-                const generatedId = "STU-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+                const generatedId = "STU" + Math.random().toString(36).substring(2, 7).toUpperCase();
                 const syncRes = await syncProfileAfterSignup(authData.user.id, {
                     name,
                     phone,
@@ -54,8 +54,7 @@ export default function SignupPage() {
                 if (syncRes.error) {
                     setError("Profile creation failed: " + syncRes.error);
                 } else {
-                    localStorage.setItem("tapauu_id", generatedId);
-                    router.push("/");
+                    router.push("/login?signup=success");
                     router.refresh();
                 }
             }

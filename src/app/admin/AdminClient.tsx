@@ -31,7 +31,7 @@ export default function AdminDashboard({
     const [addingToVendor, setAddingToVendor] = useState<string | null>(null)
     const [isAddingVolunteer, setIsAddingVolunteer] = useState(false)
     const [isAddingVendor, setIsAddingVendor] = useState(false)
-    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: '10' })
+    const [newVolunteer, setNewVolunteer] = useState({ name: '', tapauu_id: '', phone: '', credits: '0' })
     const [newVendor, setNewVendor] = useState({ name: '', code: '' })
     const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: '20', credit_cost: '1' })
     const [selectedDate, setSelectedDate] = useState<string>('')

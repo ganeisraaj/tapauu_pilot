@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui-base";
 import { getProfileByAuthIdAction, checkUserAction } from "../actions";
@@ -16,7 +16,15 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [signupSuccess, setSignupSuccess] = useState(false);
     const router = useRouter();
+
+    useEffect(() => {
+        // Simple check for success query param
+        if (typeof window !== 'undefined' && window.location.search.includes('signup=success')) {
+            setSignupSuccess(true);
+        }
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -85,6 +93,17 @@ export default function LoginPage() {
                 {/* Login Form */}
                 <div className="glass p-8 rounded-3xl shadow-xl shadow-primary/5 border border-white/50 bg-white/40 backdrop-blur-xl">
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        {signupSuccess && !error && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="flex items-center gap-2 p-4 rounded-2xl bg-green-50 text-green-700 text-sm font-bold border border-green-100"
+                            >
+                                <CheckCircle2 size={18} />
+                                Signup successful! Please log in below.
+                            </motion.div>
+                        )}
+
                         {error && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
@@ -167,32 +186,37 @@ export default function LoginPage() {
                                 <div className="w-full border-t border-slate-200"></div>
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-muted-foreground font-bold">Or use pilot access</span>
+                                <span className="bg-white px-2 text-muted-foreground font-black tracking-widest">Pilot Phase Legacy Access</span>
                             </div>
                         </div>
 
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={async () => {
-                                const id = window.prompt("Enter your TAPAUU ID (e.g. STU123):");
-                                if (id) {
-                                    setIsLoading(true);
-                                    const res = await checkUserAction(id.toUpperCase());
-                                    if (res.success && res.user) {
-                                        localStorage.setItem("tapauu_id", res.user.tapauu_id);
-                                        router.push("/");
-                                        router.refresh();
-                                    } else {
-                                        alert("Invalid TAPAUU ID");
+                        <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-3">
+                            <p className="text-[10px] font-black text-primary/60 uppercase text-center tracking-widest leading-none">
+                                Have an existing pilot ID?
+                            </p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={async () => {
+                                    const id = window.prompt("Enter your TAPAUU ID (e.g. STU123):");
+                                    if (id) {
+                                        setIsLoading(true);
+                                        const res = await checkUserAction(id.toUpperCase());
+                                        if (res.success && res.user) {
+                                            localStorage.setItem("tapauu_id", res.user.tapauu_id);
+                                            router.push("/");
+                                            router.refresh();
+                                        } else {
+                                            alert("Invalid TAPAUU ID or account disabled.");
+                                        }
+                                        setIsLoading(false);
                                     }
-                                    setIsLoading(false);
-                                }
-                            }}
-                            className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black hover:bg-primary/5 shadow-sm"
-                        >
-                            Log in with TAPAUU ID
-                        </Button>
+                                }}
+                                className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black hover:bg-primary/10 bg-white shadow-sm transition-all"
+                            >
+                                Continue with TAPAUU ID
+                            </Button>
+                        </div>
                     </form>
                 </div>
 
