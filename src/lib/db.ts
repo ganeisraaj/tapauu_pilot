@@ -79,14 +79,14 @@ export async function getUserById(tapauuId: string) {
         .select('*')
         .eq('tapauu_id', tapauuId)
         .eq('active', true)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid coercion errors
     return data as User | null;
 }
 
 export async function makeReservation(tapauuId: string, mealId: string, pickupTime: string) {
     // 1. Get user and meal
-    const { data: user } = await supabase.from('users').select('*').eq('tapauu_id', tapauuId).single();
-    const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', mealId).single();
+    const { data: user } = await supabase.from('users').select('*').eq('tapauu_id', tapauuId).maybeSingle();
+    const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', mealId).maybeSingle();
 
     if (!user || !meal) throw new Error('User or Meal not found');
 
@@ -105,11 +105,11 @@ export async function makeReservation(tapauuId: string, mealId: string, pickupTi
         .select('id')
         .eq('user_id', user.id)
         .eq('date', meal.date)
-        .single();
+        .maybeSingle();
     if (existing) throw new Error('Already reserved a meal for today');
 
     // 4. Generate Voucher
-    const { data: vendor } = await supabase.from('vendors').select('*').eq('id', meal.vendor_id).single();
+    const { data: vendor } = await supabase.from('vendors').select('*').eq('id', meal.vendor_id).maybeSingle();
     const dateObj = new Date(meal.date);
     const dateCode = `${dateObj.getDate().toString().padStart(2, '0')}${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
 
@@ -145,7 +145,7 @@ export async function makeReservation(tapauuId: string, mealId: string, pickupTi
 }
 
 export async function redeemVoucher(voucherCode: string) {
-    const { data: res } = await supabase.from('reservations').select('*').eq('voucher', voucherCode).single();
+    const { data: res } = await supabase.from('reservations').select('*').eq('voucher', voucherCode).maybeSingle();
     if (!res) throw new Error('Voucher not found');
     if (res.status === 'redeemed') throw new Error('Voucher already redeemed');
 
@@ -153,7 +153,7 @@ export async function redeemVoucher(voucherCode: string) {
         .update({ status: 'redeemed' })
         .eq('voucher', voucherCode)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -257,13 +257,13 @@ export async function deleteMeal(mealId: string) {
 
 export async function deleteReservation(reservationId: string) {
     // 1. Get the reservation first to know what to refund
-    const { data: res } = await supabase.from('reservations').select('*').eq('id', reservationId).single();
+    const { data: res } = await supabase.from('reservations').select('*').eq('id', reservationId).maybeSingle();
     if (!res) throw new Error('Reservation not found');
 
     // 2. If it was reserved (not redeemed), refund the user and restore meal slot
     if (res.status === 'reserved' || res.status === 'cancelled') {
-        const { data: user } = await supabase.from('users').select('*').eq('id', res.user_id).single();
-        const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', res.meal_id).single();
+        const { data: user } = await supabase.from('users').select('*').eq('id', res.user_id).maybeSingle();
+        const { data: meal } = await supabase.from('daily_meals').select('*').eq('id', res.meal_id).maybeSingle();
 
         if (user && meal) {
             const cost = meal.credit_cost || 1;

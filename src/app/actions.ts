@@ -53,7 +53,7 @@ export async function getProfileByAuthIdAction(authId: string) {
             .from('users')
             .select('*')
             .eq('id', authId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return { success: true, user: data }
