@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, Badge } from '@/components/ui-base'
-import { reserveMealAction, checkUserAction } from './actions'
+import { reserveMealAction, checkUserAction, getProfileByAuthIdAction } from './actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
 import { Utensils, Clock, CheckCircle, History, User as UserIcon, LogOut, ArrowRight, Wallet } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 import { cn, getMYTDateString } from '@/lib/utils'
 
 export default function Home({
@@ -30,22 +31,25 @@ export default function Home({
 
     useEffect(() => {
         setMounted(true)
-        const savedId = localStorage.getItem('tapauu_id')
-        if (savedId) {
-            setTapauuId(savedId)
-            handleCheckUser(savedId)
+        const checkSession = async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            if (authUser) {
+                // If we have an auth user, get their profile by UUID
+                const res = await getProfileByAuthIdAction(authUser.id)
+                if (res.success && res.user) {
+                    setUser(res.user)
+                    setTapauuId(res.user.tapauu_id)
+                }
+            } else {
+                // Fallback to localStorage for legacy browser sessions if still needed
+                const savedId = localStorage.getItem('tapauu_id')
+                if (savedId) {
+                    handleCheckUser(savedId)
+                }
+            }
         }
+        checkSession()
     }, [])
-
-    useEffect(() => {
-        if (user) {
-            const today = getMYTDateString()
-            const tomorrow = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
-
-            setTodayReservation(allReservations.find(r => r.user_id === user.id && r.date === today) || null)
-            setTomorrowReservation(allReservations.find(r => r.user_id === user.id && r.date === tomorrow) || null)
-        }
-    }, [user, allReservations])
 
     const handleCheckUser = async (id?: string) => {
         const targetId = id || tapauuId
@@ -82,10 +86,12 @@ export default function Home({
         setLoading(false)
     }
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
         localStorage.removeItem('tapauu_id')
         setUser(null)
         setTapauuId('')
+        window.location.href = '/'
     }
 
     const todayStr = mounted ? new Date().toLocaleDateString('en-MY', {
@@ -109,40 +115,28 @@ export default function Home({
 
             {!user ? (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Card className="border-2 border-primary/20 bg-white/50 backdrop-blur">
-                        <CardHeader>
-                            <CardTitle>Member Access</CardTitle>
-                            <CardDescription>Enter your TAPAUU ID to view today's meals.</CardDescription>
+                    <Card className="border-2 border-primary/20 bg-white/50 backdrop-blur overflow-hidden">
+                        <div className="h-2 bg-primary" />
+                        <CardHeader className="text-center pb-2">
+                            <CardTitle className="text-2xl font-black">Student Access</CardTitle>
+                            <CardDescription>Log in to view today&apos;s meals and reserve your spot.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Input
-                                placeholder="e.g. STU101"
-                                value={tapauuId}
-                                onChange={(e) => setTapauuId(e.target.value.toUpperCase())}
-                                onKeyDown={(e) => e.key === 'Enter' && handleCheckUser()}
-                                className="text-lg font-mono uppercase"
-                            />
-                            <Button onClick={() => handleCheckUser()} disabled={loading} className="w-full h-12 text-lg font-bold">
-                                {loading ? 'Checking...' : 'Explore Meals'}
-                            </Button>
-                            {message?.type === 'error' && (
-                                <p className="text-sm text-destructive font-medium text-center">{message.text}</p>
-                            )}
-                            <div className="relative py-2">
-                                <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-slate-200"></div>
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-white px-2 text-muted-foreground font-bold">or</span>
-                                </div>
+                        <CardContent className="space-y-6 pt-4">
+                            <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 text-center space-y-2">
+                                <p className="text-sm font-medium text-slate-600">New to TAPAUU?</p>
+                                <p className="text-xs text-slate-400">Join the movement for smarter student dining.</p>
                             </div>
+
                             <Button
-                                variant="outline"
-                                className="w-full h-12 font-bold border-2"
                                 onClick={() => window.location.href = '/login'}
+                                className="w-full h-16 text-lg font-black shadow-xl shadow-primary/20 flex items-center justify-center gap-2 rounded-2xl"
                             >
-                                Sign In / Sign Up
+                                Get Started <ArrowRight className="w-5 h-5" />
                             </Button>
+
+                            <p className="text-center text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                                Fast • Simple • Secure
+                            </p>
                         </CardContent>
                     </Card>
                 </motion.div>
