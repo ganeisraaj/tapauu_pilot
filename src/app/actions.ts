@@ -115,6 +115,27 @@ export async function createUserAction(user: Partial<User>) {
     }
 }
 
+export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string }) {
+    try {
+        const { supabaseAdmin } = await import('@/lib/supabase-admin');
+        const { error } = await supabaseAdmin
+            .from('users')
+            .upsert({
+                ...profile,
+                id: authId,
+                credits: 10,
+                active: true
+            });
+
+        if (error) throw error;
+
+        revalidatePath('/')
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message }
+    }
+}
+
 export async function createVendorAction(vendor: Partial<Vendor>) {
     try {
         await createVendor(vendor)

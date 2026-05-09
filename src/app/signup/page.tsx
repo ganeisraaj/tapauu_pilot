@@ -7,6 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { syncProfileAfterSignup } from "../actions";
 
 export default function SignupPage() {
     const [showPassword, setShowPassword] = useState(false);
@@ -42,23 +43,16 @@ export default function SignupPage() {
             }
 
             if (authData.user) {
-                // 2. Create profile in public.users table
-                // Generate a unique TAPAUU ID if still needed by the schema
+                // 2. Create profile via Server Action to bypass RLS
                 const generatedId = "STU-" + Math.random().toString(36).substring(2, 7).toUpperCase();
+                const syncRes = await syncProfileAfterSignup(authData.user.id, {
+                    name,
+                    phone,
+                    tapauu_id: generatedId
+                });
 
-                const { error: profileError } = await supabase
-                    .from("users")
-                    .insert({
-                        id: authData.user.id,
-                        name: name,
-                        phone: phone,
-                        tapauu_id: generatedId,
-                        credits: 10, // Starting credits for student
-                        active: true,
-                    });
-
-                if (profileError) {
-                    setError("Profile creation failed: " + profileError.message);
+                if (syncRes.error) {
+                    setError("Profile creation failed: " + syncRes.error);
                 } else {
                     localStorage.setItem("tapauu_id", generatedId);
                     router.push("/");

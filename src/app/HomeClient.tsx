@@ -32,46 +32,52 @@ export default function Home({
         setMounted(true)
         const initAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
+            const savedId = localStorage.getItem('tapauu_id');
+
             if (session?.user) {
-                // Get user by Auth ID
-                const res = await fetchProfileByAuthId(session.user.id);
-                if (res) {
-                    setUser(res);
-                    localStorage.setItem('tapauu_id', res.tapauu_id);
+                const profile = await fetchProfileByAuthId(session.user.id);
+                if (profile) {
+                    setUser(profile);
+                    localStorage.setItem('tapauu_id', profile.tapauu_id);
+                } else if (savedId) {
+                    // Fallback to legacy ID check if session profile not found
+                    await handleCheckUser(savedId);
                 } else {
                     router.push('/login');
                 }
+            } else if (savedId) {
+                await handleCheckUser(savedId);
             } else {
-                const savedId = localStorage.getItem('tapauu_id');
-                if (savedId) {
-                    handleCheckUser(savedId);
-                } else {
-                    router.push('/login');
-                }
+                router.push('/login');
             }
         };
         initAuth();
     }, [])
 
     const fetchProfileByAuthId = async (authId: string) => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', authId)
             .single();
-        return data as User | null;
+        if (error) return null;
+        return data as User;
     }
 
     const handleCheckUser = async (id: string) => {
         setLoading(true)
-        const res = await checkUserAction(id)
-        if (res.success && res.user) {
-            setUser(res.user)
-        } else {
-            localStorage.removeItem('tapauu_id')
+        try {
+            const res = await checkUserAction(id)
+            if (res.success && res.user) {
+                setUser(res.user)
+            } else {
+                router.push('/login')
+            }
+        } catch (err) {
             router.push('/login')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const handleReserve = async (mealId: string) => {
