@@ -30,6 +30,21 @@ export default function Home({
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
+        if (!user || !mounted) return
+
+        const userReservations = allReservations.filter(r => r.user_id === user.id)
+        const todayMYT = getMYTDateString()
+        const tomorrowMYT = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
+
+        const todayRes = userReservations.find(r => r.date === todayMYT && r.status !== 'cancelled')
+        const tomorrowRes = userReservations.find(r => r.date === tomorrowMYT && r.status !== 'cancelled')
+
+        setTodayReservation(todayRes || null)
+        setTomorrowReservation(tomorrowRes || null)
+
+    }, [user, allReservations, mounted])
+
+    useEffect(() => {
         setMounted(true)
         const checkSession = async () => {
             const { data: { user: authUser } } = await supabase.auth.getUser()
