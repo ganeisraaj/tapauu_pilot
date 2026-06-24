@@ -69,11 +69,12 @@ export async function getDBData(universityId?: string) {
         vendorsQuery = vendorsQuery.eq('university_id', universityId);
     }
 
-    const [usersRes, vendorsRes, mealsRes, resRes] = await Promise.all([
+    const [usersRes, vendorsRes, mealsRes, resRes, uniRes] = await Promise.all([
         usersQuery,
         vendorsQuery,
         supabase.from('daily_meals').select('*'),
-        supabase.from('reservations').select('*')
+        supabase.from('reservations').select('*'),
+        supabase.from('universities').select('*')
     ]);
 
     const vendorIds = new Set((vendorsRes.data || []).map((v: any) => v.id));
@@ -92,7 +93,8 @@ export async function getDBData(universityId?: string) {
         users: usersRes.data || [],
         vendors: vendorsRes.data || [],
         daily_meals: meals || [],
-        reservations: resRes.data || []
+        reservations: resRes.data || [],
+        universities: uniRes.data || []
     };
 }
 

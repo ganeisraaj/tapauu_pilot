@@ -19,6 +19,7 @@ export default async function Home() {
       initialMeals={meals}
       initialVendors={db.vendors}
       allReservations={db.reservations}
+      universities={db.universities}
     />
   )
 }

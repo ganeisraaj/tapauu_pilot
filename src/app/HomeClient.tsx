@@ -18,11 +18,13 @@ const FloatingOrb = ({ className, style }: React.HTMLAttributes<HTMLDivElement>)
 export default function Home({
     initialMeals,
     initialVendors,
-    allReservations
+    allReservations,
+    universities = []
 }: {
     initialMeals: DailyMeal[],
     initialVendors: Vendor[],
-    allReservations: Reservation[]
+    allReservations: Reservation[],
+    universities: any[]
 }) {
     const router = useRouter()
     const [tapauuId, setTapauuId] = useState<string>('')
@@ -192,7 +194,9 @@ export default function Home({
                         </div>
                         <div>
                             <p className="text-xs font-black uppercase tracking-widest text-white/30 leading-none mb-1">Campus</p>
-                            <p className="text-sm font-black italic">{scopedVendors[0]?.university_id?.split('-')[0] || 'My Campus'}</p>
+                            <p className="text-sm font-black italic">
+                                {universities.find(un => un.id === user.university_id)?.name || 'My Campus'}
+                            </p>
                         </div>
                     </div>
                 </div>
