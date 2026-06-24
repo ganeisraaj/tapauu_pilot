@@ -54,7 +54,7 @@ export default function SignupPage() {
 
             if (authData.user) {
                 // 2. Create profile via Server Action to bypass RLS
-                const generatedId = "STU" + Math.random().toString(36).substring(2, 7).toUpperCase();
+                const generatedId = "STU" + Math.floor(100 + Math.random() * 900);
                 const syncRes = await syncProfileAfterSignup(authData.user.id, {
                     name,
                     phone,
