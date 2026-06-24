@@ -4,6 +4,7 @@ import {
     makeReservation,
     getUserById,
     getDBData,
+    getUniversities,
     redeemVoucher,
     updateUser,
     updateMeal,
@@ -45,11 +46,20 @@ export async function checkUserAction(tapauuId: string) {
     return { success: true, user }
 }
 
+export async function getUniversitiesAction() {
+    try {
+        const universities = await getUniversities();
+        return { success: true, universities };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
 /**
  * Used after email/password signup to write the profile to our users table.
  * Called from signup/page.tsx.
  */
-export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string }) {
+export async function syncProfileAfterSignup(authId: string, profile: { name: string, phone: string, tapauu_id: string, university_id?: string }) {
     try {
         console.log('Syncing profile for:', authId, profile.tapauu_id);
         const { supabaseAdmin } = await import('@/lib/supabase-admin');
@@ -106,8 +116,8 @@ export async function getProfileByAuthIdAction(authId: string, email?: string, m
     }
 }
 
-export async function getTodayDataAction() {
-    return await getDBData()
+export async function getTodayDataAction(universityId?: string) {
+    return await getDBData(universityId)
 }
 
 export async function updateUserAction(userId: string, updates: Partial<User>) {

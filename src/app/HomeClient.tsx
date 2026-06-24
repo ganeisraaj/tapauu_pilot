@@ -29,6 +29,13 @@ export default function Home({
     const [selectedPickupTimes, setSelectedPickupTimes] = useState<Record<string, string>>({})
     const [mounted, setMounted] = useState(false)
 
+    // Derived: vendors and meals scoped to the logged-in user's university
+    const scopedVendors = user?.university_id
+        ? initialVendors.filter(v => v.university_id === user.university_id)
+        : initialVendors
+    const scopedVendorIds = new Set(scopedVendors.map(v => v.id))
+    const scopedMeals = initialMeals.filter(m => scopedVendorIds.has(m.vendor_id))
+
     useEffect(() => {
         if (!user || !mounted) return
 
@@ -214,7 +221,7 @@ export default function Home({
                                     <CardContent className="p-8 space-y-6">
                                         <div className="text-center">
                                             <h2 className="text-2xl font-black text-slate-900 uppercase">You're All Set!</h2>
-                                            <p className="text-slate-600 font-medium">Enjoy your meal from {initialVendors.find(v => v.id === todayReservation.vendor_id)?.name}</p>
+                                            <p className="text-slate-600 font-medium">Enjoy your meal from {scopedVendors.find(v => v.id === todayReservation.vendor_id)?.name}</p>
                                         </div>
 
                                         <div className="p-6 bg-white rounded-2xl border-2 border-dashed border-green-200 text-center space-y-2">
@@ -227,7 +234,7 @@ export default function Home({
                                         <div className="flex justify-between items-center text-sm font-medium pt-4 border-t border-green-100">
                                             <span className="text-slate-500">Scheduled:</span>
                                             <div className="text-right">
-                                                <p className="text-slate-900 font-black italic">{initialMeals.find(m => m.id === todayReservation.meal_id)?.meal_name}</p>
+                                                <p className="text-slate-900 font-black italic">{scopedMeals.find(m => m.id === todayReservation.meal_id)?.meal_name}</p>
                                                 <p className="text-xs text-green-600 font-bold">Pickup: {todayReservation.pickup_time}</p>
                                             </div>
                                         </div>
@@ -240,7 +247,7 @@ export default function Home({
                                     <div className="text-4xl">🗓️</div>
                                     <h2 className="text-xl font-black text-blue-900">Tomorrow is Sorted!</h2>
                                     <p className="text-blue-600/80 font-medium max-w-xs mx-auto">
-                                        You've booked <span className="font-bold underline text-blue-800">{initialMeals.find(m => m.id === tomorrowReservation.meal_id)?.meal_name}</span> for tomorrow.
+                                        You've booked <span className="font-bold underline text-blue-800">{scopedMeals.find(m => m.id === tomorrowReservation.meal_id)?.meal_name}</span> for tomorrow.
                                     </p>
                                     <Badge variant="outline" className="bg-blue-100/50 text-blue-700 border-blue-200 font-black">
                                         Pickup: {tomorrowReservation.pickup_time}
@@ -260,14 +267,14 @@ export default function Home({
                                 </div>
 
                                 <div className="grid gap-4">
-                                    {initialMeals
+                                    {scopedMeals
                                         .filter(m => {
                                             const todayMYT = getMYTDateString()
                                             const tomorrowMYT = getMYTDateString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
                                             return selectedDay === 'today' ? m.date === todayMYT : m.date === tomorrowMYT
                                         })
                                         .map((meal) => {
-                                            const vendor = initialVendors.find(v => v.id === meal.vendor_id)
+                                            const vendor = scopedVendors.find(v => v.id === meal.vendor_id)
                                             const isSoldOut = meal.remaining <= 0
 
                                             const todayMYT = getMYTDateString()

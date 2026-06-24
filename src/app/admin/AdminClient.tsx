@@ -5,20 +5,23 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Input, Badge } from '@/components/ui-base'
 import { updateUserAction, updateMealAction, createMealAction, deleteMealAction, redeemAction, createUserAction, createVendorAction, deleteVendorAction, deleteUserAction, updateVendorAction, deleteReservationAction } from '../actions'
 import { DailyMeal, Vendor, Reservation, User } from '@/lib/db'
-import { Users, LayoutDashboard, Settings, ListChecks, Search, Save, Check, X, TrendingUp, AlertCircle, Trash2, Utensils, LogOut, UserPlus, Store, Edit3 } from 'lucide-react'
+import { Users, LayoutDashboard, Settings, ListChecks, Search, Save, Check, X, TrendingUp, AlertCircle, Trash2, Utensils, LogOut, UserPlus, Store, Edit3, Globe } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { University } from '@/lib/db'
 
 export default function AdminDashboard({
     users,
     vendors,
     meals,
-    reservations
+    reservations,
+    universities = []
 }: {
     users: User[],
     vendors: Vendor[],
     meals: DailyMeal[],
-    reservations: Reservation[]
+    reservations: Reservation[],
+    universities?: University[]
 }) {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'meals' | 'reservations'>('stats')
@@ -31,11 +34,12 @@ export default function AdminDashboard({
     const [addingToVendor, setAddingToVendor] = useState<string | null>(null)
     const [isAddingUser, setIsAddingUser] = useState(false)
     const [isAddingVendor, setIsAddingVendor] = useState(false)
-    const [newUser, setNewUser] = useState({ name: '', tapauu_id: '', phone: '', credits: '0' })
-    const [newVendor, setNewVendor] = useState({ name: '', code: '' })
+    const [newUser, setNewUser] = useState({ name: '', tapauu_id: '', phone: '', credits: '0', university_id: '' })
+    const [newVendor, setNewVendor] = useState({ name: '', code: '', university_id: '' })
     const [editForm, setEditForm] = useState({ meal_name: '', cutoff: '', limit: '20', credit_cost: '1' })
     const [selectedDate, setSelectedDate] = useState<string>('')
     const [editingCredits, setEditingCredits] = useState<{ [userId: string]: string }>({})
+    const [selectedUniversity, setSelectedUniversity] = useState<string>('all')
 
     React.useEffect(() => {
         const today = new Date().toISOString().split('T')[0]
@@ -114,12 +118,19 @@ export default function AdminDashboard({
         )
     }
 
+    // Filtered data based on selected university
+    const filteredUsers = selectedUniversity === 'all' ? users : users.filter(u => u.university_id === selectedUniversity)
+    const filteredVendors = selectedUniversity === 'all' ? vendors : vendors.filter(v => v.university_id === selectedUniversity)
+    const filteredVendorIds = new Set(filteredVendors.map(v => v.id))
+    const filteredMeals = selectedUniversity === 'all' ? meals : meals.filter(m => filteredVendorIds.has(m.vendor_id))
+    const filteredReservations = selectedUniversity === 'all' ? reservations : reservations.filter(r => filteredVendorIds.has(r.vendor_id))
+
     const stats = {
-        totalUsers: users.length,
-        totalReservations: reservations.length,
-        totalRedeemed: reservations.filter(r => r.status === 'redeemed').length,
-        noShows: reservations.filter(r => r.status === 'reserved').length,
-        activeUserPercentage: Math.round((users.filter(u => u.active).length / users.length) * 100)
+        totalUsers: filteredUsers.length,
+        totalReservations: filteredReservations.length,
+        totalRedeemed: filteredReservations.filter(r => r.status === 'redeemed').length,
+        noShows: filteredReservations.filter(r => r.status === 'reserved').length,
+        activeUserPercentage: filteredUsers.length > 0 ? Math.round((filteredUsers.filter(u => u.active).length / filteredUsers.length) * 100) : 0
     }
 
     const handleUpdateStatus = async (userId: string, active: boolean) => {
@@ -201,11 +212,12 @@ export default function AdminDashboard({
         setLoading(true)
         const res = await createUserAction({
             ...newUser,
-            credits: parseFloat(newUser.credits) || 0
+            credits: parseFloat(newUser.credits) || 0,
+            university_id: newUser.university_id || selectedUniversity !== 'all' ? (newUser.university_id || selectedUniversity) : undefined
         })
         if (res.success) {
             setIsAddingUser(false)
-            setNewUser({ name: '', tapauu_id: '', phone: '', credits: '10' })
+            setNewUser({ name: '', tapauu_id: '', phone: '', credits: '10', university_id: '' })
             router.refresh()
         } else {
             alert((res as any).error)
@@ -216,10 +228,13 @@ export default function AdminDashboard({
     const handleCreateVendor = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        const res = await createVendorAction(newVendor)
+        const res = await createVendorAction({
+            ...newVendor,
+            university_id: newVendor.university_id || (selectedUniversity !== 'all' ? selectedUniversity : undefined)
+        })
         if (res.success) {
             setIsAddingVendor(false)
-            setNewVendor({ name: '', code: '' })
+            setNewVendor({ name: '', code: '', university_id: '' })
             router.refresh()
         } else {
             alert((res as any).error)
@@ -276,25 +291,43 @@ export default function AdminDashboard({
                         <LogOut className="h-5 w-5" />
                     </Button>
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                    {[
-                        { id: 'stats', label: 'Stats', icon: LayoutDashboard },
-                        { id: 'users', label: 'Users', icon: Users },
-                        { id: 'meals', label: 'Daily Meals', icon: Settings },
-                        { id: 'reservations', label: 'Log', icon: ListChecks }
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={cn(
-                                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                                activeTab === tab.id ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"
-                            )}
-                        >
-                            <tab.icon className="h-4 w-4" />
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* University filter */}
+                    {universities.length > 0 && (
+                        <div className="flex items-center gap-2 bg-white border rounded-xl px-3 py-1.5 shadow-sm">
+                            <Globe className="h-4 w-4 text-primary" />
+                            <select
+                                value={selectedUniversity}
+                                onChange={e => setSelectedUniversity(e.target.value)}
+                                className="text-sm font-bold text-slate-700 focus:outline-none bg-transparent cursor-pointer"
+                            >
+                                <option value="all">All Universities</option>
+                                {universities.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        {[
+                            { id: 'stats', label: 'Stats', icon: LayoutDashboard },
+                            { id: 'users', label: 'Users', icon: Users },
+                            { id: 'meals', label: 'Daily Meals', icon: Settings },
+                            { id: 'reservations', label: 'Log', icon: ListChecks }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                                    activeTab === tab.id ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                )}
+                            >
+                                <tab.icon className="h-4 w-4" />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -302,7 +335,7 @@ export default function AdminDashboard({
                 {activeTab === 'stats' && (
                     <motion.div key="stats" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                         <div className="grid md:grid-cols-4 gap-6">
-                            <StatCard title="Total Users" value={stats.totalUsers} sub="15-20 Target" icon={Users} color="blue" />
+                            <StatCard title="Total Users" value={stats.totalUsers} sub={selectedUniversity === 'all' ? 'All campuses' : 'This campus'} icon={Users} color="blue" />
                             <StatCard title="Bookings Today" value={stats.totalReservations} sub="Cumulative" icon={TrendingUp} color="orange" />
                             <StatCard title="Meals Redeemed" value={stats.totalRedeemed} sub="Delivered to users" icon={Check} color="green" />
                             <StatCard title="No-Shows" value={stats.noShows} sub="Reserved but not used" icon={AlertCircle} color="red" />
@@ -339,7 +372,7 @@ export default function AdminDashboard({
                                     <CardDescription>Share these secret links with each individual food vendor.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-2 gap-4">
-                                    {vendors.map(v => (
+                                    {filteredVendors.map(v => (
                                         <div key={v.id} className="p-3 bg-white rounded-xl border flex flex-col justify-between">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
@@ -371,7 +404,7 @@ export default function AdminDashboard({
                                     <CardDescription>Add a new student to the system.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <form onSubmit={handleCreateUser} className="grid md:grid-cols-5 gap-4">
+                                    <form onSubmit={handleCreateUser} className="grid md:grid-cols-6 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] uppercase font-black text-slate-400">TAPAUU ID</label>
                                             <Input placeholder="STU999" value={newUser.tapauu_id} onChange={e => setNewUser({ ...newUser, tapauu_id: e.target.value.toUpperCase() })} required />
@@ -388,6 +421,14 @@ export default function AdminDashboard({
                                             <label className="text-[10px] uppercase font-black text-slate-400">Credits</label>
                                             <Input type="number" step="any" value={newUser.credits} onChange={e => setNewUser({ ...newUser, credits: e.target.value })} />
                                         </div>
+                                        {universities.length > 0 && (
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-slate-400">University</label>
+                                                <select className="w-full h-10 px-2 rounded-md border border-slate-200 text-sm focus:outline-none" value={newUser.university_id || selectedUniversity} onChange={e => setNewUser({ ...newUser, university_id: e.target.value })}>
+                                                    {universities.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
                                         <div className="flex items-end gap-2">
                                             <Button type="submit" className="flex-1 font-black" disabled={loading}>Save User</Button>
                                             <Button type="button" variant="ghost" onClick={() => setIsAddingUser(false)}>Cancel</Button>
@@ -484,8 +525,8 @@ export default function AdminDashboard({
                             </div>
                         </div>
                         <div className="grid md:grid-cols-3 gap-6">
-                            {vendors.map(vendor => {
-                                const meal = meals.find(m => m.date === selectedDate && m.vendor_id === vendor.id)
+                            {filteredVendors.map(vendor => {
+                                const meal = filteredMeals.find(m => m.date === selectedDate && m.vendor_id === vendor.id)
 
                                 return (
                                     <Card key={vendor.id} className={cn(
@@ -670,9 +711,9 @@ export default function AdminDashboard({
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y">
-                                            {reservations.sort((a, b) => b.created_at.localeCompare(a.created_at)).map(res => {
-                                                const user = users.find(u => u.id === res.user_id)
-                                                const vendor = vendors.find(v => v.id === res.vendor_id)
+                                            {filteredReservations.sort((a, b) => b.created_at.localeCompare(a.created_at)).map(res => {
+                                                const user = filteredUsers.find(u => u.id === res.user_id)
+                                                const vendor = filteredVendors.find(v => v.id === res.vendor_id)
                                                 return (
                                                     <tr key={res.id} className={cn("hover:bg-slate-50/50", res.status === 'redeemed' ? "bg-green-50/20" : "")}>
                                                         <td className="p-4 font-mono font-bold text-primary">{res.voucher}</td>
@@ -740,6 +781,14 @@ export default function AdminDashboard({
                                             <Input placeholder="D" maxLength={1} value={newVendor.code} onChange={e => setNewVendor({ ...newVendor, code: e.target.value.toUpperCase() })} required />
                                             <p className="text-[10px] text-slate-400">This code is used for voucher generation (e.g., D-2403-01)</p>
                                         </div>
+                                        {universities.length > 0 && (
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] uppercase font-black text-slate-400">Assign to University</label>
+                                                <select className="w-full h-10 px-2 rounded-md border border-slate-200 text-sm focus:outline-none" value={newVendor.university_id || selectedUniversity} onChange={e => setNewVendor({ ...newVendor, university_id: e.target.value })}>
+                                                    {universities.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
                                         <div className="flex gap-2 pt-2">
                                             <Button type="submit" className="flex-1 font-black" disabled={loading}>Register Vendor</Button>
                                             <Button type="button" variant="ghost" onClick={() => setIsAddingVendor(false)}>Cancel</Button>

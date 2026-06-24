@@ -1,10 +1,13 @@
-import { getDBData } from '@/lib/db'
+import { getDBData, getUniversities } from '@/lib/db'
 import AdminClient from './AdminClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
-    const db = await getDBData()
+    const [db, universities] = await Promise.all([
+        getDBData(),
+        getUniversities()
+    ])
 
     return (
         <AdminClient
@@ -12,6 +15,7 @@ export default async function AdminPage() {
             vendors={db.vendors}
             meals={db.daily_meals}
             reservations={db.reservations}
+            universities={universities}
         />
     )
 }

@@ -1,6 +1,13 @@
 import { supabaseAdmin as supabase } from './supabase-admin'
 import { getMYTDateString, getMYTCutoff } from './utils'
 
+export type University = {
+    id: string;
+    name: string;
+    slug: string;
+    active: boolean;
+};
+
 export type User = {
     id: string;
     tapauu_id: string;
@@ -8,6 +15,7 @@ export type User = {
     phone: string;
     credits: number;
     active: boolean;
+    university_id?: string;
 };
 
 export type Vendor = {
@@ -15,6 +23,7 @@ export type Vendor = {
     name: string;
     code: string;
     active: boolean;
+    university_id?: string;
 };
 
 export type DailyMeal = {
@@ -45,20 +54,39 @@ export function getTodayStr() {
 }
 
 // Supabase powered DB functions
-export async function getDBData() {
+export async function getUniversities(): Promise<University[]> {
+    const { data } = await supabase.from('universities').select('*').eq('active', true);
+    return (data || []) as University[];
+}
+
+export async function getDBData(universityId?: string) {
+    let usersQuery = supabase.from('users').select('*');
+    let vendorsQuery = supabase.from('vendors').select('*');
+
+    // If a university filter is provided, scope users and vendors to that university
+    if (universityId) {
+        usersQuery = usersQuery.eq('university_id', universityId);
+        vendorsQuery = vendorsQuery.eq('university_id', universityId);
+    }
+
     const [usersRes, vendorsRes, mealsRes, resRes] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('vendors').select('*'),
+        usersQuery,
+        vendorsQuery,
         supabase.from('daily_meals').select('*'),
         supabase.from('reservations').select('*')
     ]);
 
+    const vendorIds = new Set((vendorsRes.data || []).map((v: any) => v.id));
+
     // Map any field names if necessary (e.g., limit -> slots_limit)
-    const meals = (mealsRes.data || []).map(m => ({
-        ...m,
-        limit: m.slots_limit,
-        credit_cost: m.credit_cost || 1
-    }));
+    // Also filter meals to only those belonging to this university's vendors
+    const meals = (mealsRes.data || [])
+        .filter((m: any) => !universityId || vendorIds.has(m.vendor_id))
+        .map((m: any) => ({
+            ...m,
+            limit: m.slots_limit,
+            credit_cost: m.credit_cost || 1
+        }));
 
     return {
         users: usersRes.data || [],
